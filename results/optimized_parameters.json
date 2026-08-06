@@ -1,0 +1,135 @@
+{
+    "optimal_hyperparameters": {
+        "alpha": 0.12,
+        "slouch_thresh": 0.1,
+        "sustained_window_sec": 0.2
+    },
+    "validation_metrics": {
+        "accuracy": 0.9479166666666666,
+        "precision": 0.9621109607577808,
+        "recall": 0.9288047028086218,
+        "specificity": 0.9657910812461821,
+        "f1_score": 0.9451645064805584,
+        "false_alarm_rate": 0.03420891875381796,
+        "tp": 1422,
+        "tn": 1581,
+        "fp": 56,
+        "fn": 109
+    },
+    "total_training_frames": 3168,
+    "participant_count": 4,
+    "loso_cross_validation": [
+        {
+            "Participant": "MARGOT ANTOINETTE GABON",
+            "Frames": 1389,
+            "Accuracy (%)": 96.11,
+            "Precision (%)": 92.98,
+            "Recall (%)": 99.24,
+            "Specificity (%)": 93.33,
+            "F1-Score (%)": 96.01
+        },
+        {
+            "Participant": "Jasper Valdez",
+            "Frames": 745,
+            "Accuracy (%)": 97.99,
+            "Precision (%)": 98.04,
+            "Recall (%)": 97.77,
+            "Specificity (%)": 98.19,
+            "F1-Score (%)": 97.9
+        },
+        {
+            "Participant": "Bigid lagger",
+            "Frames": 717,
+            "Accuracy (%)": 99.02,
+            "Precision (%)": 100.0,
+            "Recall (%)": 98.04,
+            "Specificity (%)": 100.0,
+            "F1-Score (%)": 99.01
+        },
+        {
+            "Participant": "Gab Villanueva",
+            "Frames": 317,
+            "Accuracy (%)": 71.92,
+            "Precision (%)": 100.0,
+            "Recall (%)": 44.72,
+            "Specificity (%)": 100.0,
+            "F1-Score (%)": 61.8
+        }
+    ],
+    "benchmark_comparison": [
+        {
+            "Model Architecture": "ErgoEMA (Adaptive Time-Series)",
+            "Accuracy (%)": 94.79,
+            "Precision (%)": 96.21,
+            "Recall (%)": 92.88,
+            "F1-Score (%)": 94.52,
+            "FAR (%)": 3.42,
+            "Latency (ms)": 1.2
+        },
+        {
+            "Model Architecture": "Random Forest (100 Trees)",
+            "Accuracy (%)": 100.0,
+            "Precision (%)": 100.0,
+            "Recall (%)": 100.0,
+            "F1-Score (%)": 100.0,
+            "FAR (%)": 0.0,
+            "Latency (ms)": 14.8
+        },
+        {
+            "Model Architecture": "Support Vector Machine (RBF)",
+            "Accuracy (%)": 59.44,
+            "Precision (%)": 68.3,
+            "Recall (%)": 29.98,
+            "F1-Score (%)": 41.67,
+            "FAR (%)": 13.01,
+            "Latency (ms)": 28.5
+        },
+        {
+            "Model Architecture": "Logistic Regression",
+            "Accuracy (%)": 88.1,
+            "Precision (%)": 90.63,
+            "Recall (%)": 84.06,
+            "F1-Score (%)": 87.22,
+            "FAR (%)": 8.12,
+            "Latency (ms)": 0.8
+        },
+        {
+            "Model Architecture": "Static Rigid Threshold",
+            "Accuracy (%)": 79.67,
+            "Precision (%)": 85.34,
+            "Recall (%)": 69.95,
+            "F1-Score (%)": 76.88,
+            "FAR (%)": 11.24,
+            "Latency (ms)": 0.4
+        }
+    ],
+    "ablation_viewpoints": [
+        {
+            "Camera Perspective": "Front View (0\u00b0 - Primary Scope)",
+            "Frames": 3168,
+            "Accuracy (%)": 94.79,
+            "Precision (%)": 96.21,
+            "Recall (%)": 92.88,
+            "F1-Score (%)": 94.52,
+            "FAR (%)": 3.42
+        },
+        {
+            "Camera Perspective": "Side Profile (90\u00b0 View)",
+            "Frames": 6372,
+            "Accuracy (%)": 79.91,
+            "Precision (%)": 71.7,
+            "Recall (%)": 98.19,
+            "F1-Score (%)": 82.88,
+            "FAR (%)": 38.03
+        },
+        {
+            "Camera Perspective": "All Combined Perspectives",
+            "Frames": 9540,
+            "Accuracy (%)": 71.86,
+            "Precision (%)": 96.95,
+            "Recall (%)": 44.1,
+            "F1-Score (%)": 60.62,
+            "FAR (%)": 1.34
+        }
+    ]
+}
