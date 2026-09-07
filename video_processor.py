@@ -273,7 +273,7 @@ if __name__ == "__main__":
     parser.add_argument("--somatotype", type=str, default="Mesomorph", choices=["Ectomorph", "Mesomorph", "Endomorph"])
     parser.add_argument("--bmi", type=str, default="Normal", choices=["Underweight", "Normal", "Overweight"])
     parser.add_argument("--label", type=str, default="auto", choices=["upright", "slouch", "fhp", "auto"], help="Posture label (upright, slouch, fhp, or auto)")
-    parser.add_argument("--view_angle", type=str, default="Front", choices=["Front", "Side"], help="Camera view angle (Front or Side)")
+    parser.add_argument("--view_angle", type=str, default="Front", choices=["Front", "Side", "90deg"], help="Camera view angle (Front, Side, or 90deg)")
     parser.add_argument("--save_frames", action="store_true", help="Export individual extracted image frames to data/frames/")
     parser.add_argument("--output", type=str, default="data/processed", help="Output directory for processed CSVs")
     args = parser.parse_args()

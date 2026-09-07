@@ -51,10 +51,12 @@ The table below demonstrates the effect of camera placement geometry on biometri
 | Camera Perspective              |   Frames |   Accuracy (%) |   Precision (%) |   Recall (%) |   F1-Score (%) |   FAR (%) |
 |:--------------------------------|---------:|---------------:|----------------:|-------------:|---------------:|----------:|
 | Front View (0° - Primary Scope) |     3168 |          94.79 |           96.21 |        92.88 |          94.52 |      3.42 |
-| Side Profile (90° View)         |     6372 |          79.91 |           71.7  |        98.19 |          82.88 |     38.03 |
-| All Combined Perspectives       |     9540 |          71.86 |           96.95 |        44.1  |          60.62 |      1.34 |
+| Oblique Profile (45° View)      |     6372 |          79.91 |           71.7  |        98.19 |          82.88 |     38.03 |
+| Lateral Profile (90° - Kaggle)  |      297 |          28.28 |           23.83 |        97.06 |          38.26 |     92.14 |
+| All Combined Perspectives       |     9837 |          70.54 |           88.54 |        44.86 |          59.55 |      5.43 |
 
 ### Geometric Analysis:
 * **Front View ($0^\circ$)**: The 2D biacromial shoulder span ($\|\text{Shoulder}_R - \text{Shoulder}_L\|$) provides an invariant denominator, yielding **94.79% Accuracy** and a **3.42% False Alarm Rate**.
-* **Side View ($90^\circ$)**: Bilateral shoulder overlap reduces inter-shoulder distance towards zero, confirming that ErgoEMA's front-facing mathematical formulation is specifically suited for standard user webcams.
+* **Oblique View ($45^\circ$)**: Perspective foreshortening compresses the visible shoulder width, causing mild accuracy degradation compared to direct frontal placement.
+* **Lateral View ($90^\circ$ - Kaggle Dataset)**: Bilateral shoulder overlap reduces inter-shoulder distance towards zero, confirming that ErgoEMA's front-facing mathematical formulation is specifically suited for standard user webcams.
 

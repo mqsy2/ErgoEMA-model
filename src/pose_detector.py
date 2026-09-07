@@ -152,9 +152,11 @@ class PoseDetector:
         left_shoulder = to_point(11)
         right_shoulder = to_point(12)
 
-        # Check essential visibility
-        essential_pts = [nose, left_shoulder, right_shoulder]
-        is_valid = all(p.visibility > 0.35 for p in essential_pts)
+        # Check essential visibility (lenient for lateral views where one shoulder is occluded)
+        has_nose = nose.visibility > 0.35
+        has_left_shoulder = left_shoulder.visibility > 0.35
+        has_right_shoulder = right_shoulder.visibility > 0.35
+        is_valid = has_nose and (has_left_shoulder or has_right_shoulder)
 
         pose_data = PoseLandmarks(
             raw_landmarks=raw_ref,
@@ -176,26 +178,74 @@ class PoseDetector:
 
         return pose_data, raw_ref
 
-    def draw_skeleton(self, frame_bgr: np.ndarray, results: Any, color: Tuple[int, int, int] = (0, 255, 0)) -> np.ndarray:
-        """Renders the skeletal keypoints and bone connections onto the frame."""
-        if results is None:
-            return frame_bgr
-
-        h, w, _ = frame_bgr.shape
+    def draw_skeleton(self, frame_bgr: np.ndarray, results: Any, color: Tuple[int, int, int] = (0, 255, 0), is_lateral: bool = False) -> np.ndarray:
+        """
+        Overlays the detected 3D skeleton onto the 2D video frame.
+        If is_lateral is True, draws the 4 synthesized Kaggle spine keypoints.
+        """
+        h, w = frame_bgr.shape[:2]
         landmarks = None
-
         if self.use_tasks_api:
             if isinstance(results, list):
                 landmarks = results
+            elif hasattr(results, 'pose_landmarks') and len(results.pose_landmarks) > 0:
+                landmarks = results.pose_landmarks[0]
             elif hasattr(results, 'pose_landmarks') and results.pose_landmarks:
                 landmarks = results.pose_landmarks[0]
         else:
-            if hasattr(results, 'pose_landmarks') and results.pose_landmarks:
-                landmarks = results.pose_landmarks.landmark
+            if hasattr(results, 'landmark'):
+                landmarks = results.landmark
 
         if landmarks is None:
             return frame_bgr
 
+        if is_lateral:
+            # === LATERAL MODE: Kaggle Spine Keypoints ===
+            # Identify the most visible side (left or right)
+            l_ear, r_ear = landmarks[7], landmarks[8]
+            l_sh, r_sh = landmarks[11], landmarks[12]
+            l_hip, r_hip = landmarks[23], landmarks[24]
+            
+            l_vis = (getattr(l_ear, 'visibility', 0.0) or 0.0) + (getattr(l_sh, 'visibility', 0.0) or 0.0)
+            r_vis = (getattr(r_ear, 'visibility', 0.0) or 0.0) + (getattr(r_sh, 'visibility', 0.0) or 0.0)
+            
+            if l_vis > r_vis:
+                cervical = l_ear
+                thoracic = l_sh
+                sacral = l_hip
+            else:
+                cervical = r_ear
+                thoracic = r_sh
+                sacral = r_hip
+                
+            c_x, c_y = int(cervical.x * w), int(cervical.y * h)
+            t_x, t_y = int(thoracic.x * w), int(thoracic.y * h)
+            s_x, s_y = int(sacral.x * w), int(sacral.y * h)
+            
+            # Synthesize Lumbar spine as ~60% down the distance from Thoracic to Sacral
+            l_x = int(t_x + 0.6 * (s_x - t_x))
+            l_y = int(t_y + 0.6 * (s_y - t_y))
+            
+            spine_pts = [(c_x, c_y), (t_x, t_y), (l_x, l_y), (s_x, s_y)]
+            spine_labels = ["CERVICAL SPINE", "THORACIC", "LUMBAR", "SACRAL"]
+            
+            # Draw connecting spine line (yellow)
+            for i in range(3):
+                cv2.line(frame_bgr, spine_pts[i], spine_pts[i+1], (0, 255, 255), 2, cv2.LINE_AA)
+                
+            # Draw the 4 keypoints with labels
+            colors = [(0, 0, 255), (0, 255, 0), (255, 0, 0), (0, 255, 255)] # Red, Green, Blue, Yellow
+            for i in range(4):
+                pt = spine_pts[i]
+                cv2.circle(frame_bgr, pt, 6, colors[i], -1, cv2.LINE_AA)
+                cv2.circle(frame_bgr, pt, 7, (0, 0, 0), 1, cv2.LINE_AA)
+                # Label text
+                cv2.putText(frame_bgr, spine_labels[i], (pt[0] + 10, pt[1] + 5), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2, cv2.LINE_AA)
+
+            return frame_bgr
+
+        # === FRONTAL MODE: Standard Upper Body Skeleton ===
         # Draw bone connections
         for idx1, idx2 in UPPER_BODY_CONNECTIONS:
             if idx1 < len(landmarks) and idx2 < len(landmarks):

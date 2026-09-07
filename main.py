@@ -144,7 +144,11 @@ def main():
 
             # Draw Skeletal Lines
             if results is not None:
-                detector.draw_skeleton(frame, results, color=skel_color)
+                is_lat = False
+                active_feat = smoothed_feat if smoothed_feat else raw_feat
+                if active_feat is not None:
+                    is_lat = active_feat.is_lateral
+                detector.draw_skeleton(frame, results, color=skel_color, is_lateral=is_lat)
 
             # Compute Execution Latency (ms)
             latency_ms = (time.perf_counter() - t_frame_start) * 1000.0
@@ -172,7 +176,7 @@ def main():
 
             # Handle Keypress Events
             key = cv2.waitKey(1) & 0xFF
-            if key == ord('q') or key == 27: # Q or ESC
+            if key == ord('q') or key == ord('Q') or key == 27: # Q, q, or ESC
                 break
             elif key == ord('c') or key == ord('C'):
                 print("[INFO] Starting 3-second upright posture calibration. Sit upright...")

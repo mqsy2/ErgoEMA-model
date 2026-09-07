@@ -114,7 +114,7 @@
             "FAR (%)": 3.42
         },
         {
-            "Camera Perspective": "Side Profile (90\u00b0 View)",
+            "Camera Perspective": "Oblique Profile (45\u00b0 View)",
             "Frames": 6372,
             "Accuracy (%)": 79.91,
             "Precision (%)": 71.7,
@@ -123,13 +123,22 @@
             "FAR (%)": 38.03
         },
         {
+            "Camera Perspective": "Lateral Profile (90\u00b0 - Kaggle)",
+            "Frames": 297,
+            "Accuracy (%)": 28.28,
+            "Precision (%)": 23.83,
+            "Recall (%)": 97.06,
+            "F1-Score (%)": 38.26,
+            "FAR (%)": 92.14
+        },
+        {
             "Camera Perspective": "All Combined Perspectives",
-            "Frames": 9540,
-            "Accuracy (%)": 71.86,
-            "Precision (%)": 96.95,
-            "Recall (%)": 44.1,
-            "F1-Score (%)": 60.62,
-            "FAR (%)": 1.34
+            "Frames": 9837,
+            "Accuracy (%)": 70.54,
+            "Precision (%)": 88.54,
+            "Recall (%)": 44.86,
+            "F1-Score (%)": 59.55,
+            "FAR (%)": 5.43
         }
     ]
 }

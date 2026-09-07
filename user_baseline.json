@@ -1,0 +1,15 @@
+{
+    "user_id": "default_user",
+    "somatotype": null,
+    "bmi_category": null,
+    "sample_count": 90,
+    "mean_h2s_ratio": 1.0,
+    "std_h2s_ratio": 0.0,
+    "mean_shoulder_tilt_deg": 0.0,
+    "std_shoulder_tilt_deg": 0.0,
+    "mean_head_roll_deg": 0.0,
+    "std_head_roll_deg": 0.0,
+    "mean_forward_head_z": -0.2783,
+    "std_forward_head_z": 0.0426,
+    "mean_shoulder_width_norm": 0.207
+}

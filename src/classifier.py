@@ -51,33 +51,62 @@ class PostureClassifier:
     ) -> PostureAssessment:
         """
         Evaluates smoothed features against personalized baseline profile.
-        Focused strictly on Slouch (H2S compression) and Forward Head Posture (FHP Z-depth).
+        Automatically adapts evaluation strategy based on detected view angle:
+        - Frontal/Oblique: Uses H2S compression ratio and Z-depth
+        - Lateral (90°): Uses ear-to-shoulder offset and nose-shoulder angle
         """
         reasons: List[str] = []
         state = PostureState.GOOD_POSTURE
-
-        # 1. Head-to-Shoulder Vertical Compression Ratio Drop (Slouch / Hunching)
-        # Drop percentage: (baseline - current) / baseline
-        ratio_drop_pct = (baseline.mean_h2s_ratio - smoothed_feat.head_to_shoulder_ratio) / max(1e-4, baseline.mean_h2s_ratio)
-        
-        # 2. Sagittal Forward-Head Z-depth Deviation (Anterior Translation)
-        # When head moves closer to camera than shoulders compared to baseline
-        z_dev = baseline.mean_forward_head_z - smoothed_feat.forward_head_z
-
-        # Track active violations and relative severity
         active_violations = {}
 
-        if ratio_drop_pct > self.slouch_ratio_drop_thresh:
-            active_violations[PostureState.SLOUCH] = ratio_drop_pct / max(1e-4, self.slouch_ratio_drop_thresh)
-            reasons.append(
-                f"Head compressed {ratio_drop_pct * 100:.1f}% below baseline (Current: {smoothed_feat.head_to_shoulder_ratio:.2f}, Base: {baseline.mean_h2s_ratio:.2f})"
-            )
+        if smoothed_feat.is_lateral:
+            # === LATERAL MODE (90° Side Profile) ===
+            # Use nose-shoulder angle as the primary slouch metric
+            # In upright side-profile: angle is close to 0° (head directly above shoulders)
+            # In slouch: angle increases as head moves forward
+            nose_angle = abs(smoothed_feat.nose_shoulder_angle_deg)
+            LATERAL_SLOUCH_ANGLE_THRESH = 15.0  # degrees
 
-        if z_dev > self.forward_head_z_thresh:
-            active_violations[PostureState.FORWARD_HEAD] = z_dev / max(1e-4, self.forward_head_z_thresh)
-            reasons.append(
-                f"Head jutted forward by {z_dev:+.3f} units (FHP detected)"
-            )
+            if nose_angle > LATERAL_SLOUCH_ANGLE_THRESH:
+                severity = nose_angle / max(1.0, LATERAL_SLOUCH_ANGLE_THRESH)
+                active_violations[PostureState.SLOUCH] = severity
+                reasons.append(
+                    f"[LATERAL] Head forward {nose_angle:.1f}° from vertical (threshold: {LATERAL_SLOUCH_ANGLE_THRESH}°)"
+                )
+
+            # Use ear-shoulder horizontal offset as FHP metric
+            ear_offset = abs(smoothed_feat.ear_shoulder_offset_x)
+            LATERAL_FHP_OFFSET_THRESH = 0.08  # normalized units
+
+            if ear_offset > LATERAL_FHP_OFFSET_THRESH:
+                severity = ear_offset / max(1e-4, LATERAL_FHP_OFFSET_THRESH)
+                active_violations[PostureState.FORWARD_HEAD] = severity
+                reasons.append(
+                    f"[LATERAL] Ear offset {ear_offset:.3f} from shoulder (FHP threshold: {LATERAL_FHP_OFFSET_THRESH})"
+                )
+
+            ratio_drop_pct = nose_angle / 90.0  # Normalize for assessment output
+            z_dev = ear_offset
+
+        else:
+            # === FRONTAL / OBLIQUE MODE ===
+            # 1. Head-to-Shoulder Vertical Compression Ratio Drop (Slouch / Hunching)
+            ratio_drop_pct = (baseline.mean_h2s_ratio - smoothed_feat.head_to_shoulder_ratio) / max(1e-4, baseline.mean_h2s_ratio)
+            
+            # 2. Sagittal Forward-Head Z-depth Deviation (Anterior Translation)
+            z_dev = baseline.mean_forward_head_z - smoothed_feat.forward_head_z
+
+            if ratio_drop_pct > self.slouch_ratio_drop_thresh:
+                active_violations[PostureState.SLOUCH] = ratio_drop_pct / max(1e-4, self.slouch_ratio_drop_thresh)
+                reasons.append(
+                    f"Head compressed {ratio_drop_pct * 100:.1f}% below baseline (Current: {smoothed_feat.head_to_shoulder_ratio:.2f}, Base: {baseline.mean_h2s_ratio:.2f})"
+                )
+
+            if z_dev > self.forward_head_z_thresh:
+                active_violations[PostureState.FORWARD_HEAD] = z_dev / max(1e-4, self.forward_head_z_thresh)
+                reasons.append(
+                    f"Head jutted forward by {z_dev:+.3f} units (FHP detected)"
+                )
 
         # Primary state is the one with highest relative severity exceeding threshold
         if active_violations:

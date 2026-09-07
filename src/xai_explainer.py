@@ -107,21 +107,34 @@ class XAIExplainer:
         cv2.putText(frame, status_title, (card_x + 35, card_y + 60),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.62, badge_color, 2, cv2.LINE_AA)
 
-        # Feature Telemetry Row 1: Head-to-Shoulder Ratio (Slouch Metric)
-        ratio_cur = features.head_to_shoulder_ratio
-        ratio_base = baseline.mean_h2s_ratio
-        ratio_drop_pct = ((ratio_base - ratio_cur) / max(1e-4, ratio_base)) * 100.0
-        ratio_str = f"Head Ratio: {ratio_cur:.2f} (Base: {ratio_base:.2f}) [Drop: {max(0.0, ratio_drop_pct):.1f}%]"
-        cv2.putText(frame, ratio_str, (card_x + 15, card_y + 90),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.48, self.COLOR_TEXT, 1, cv2.LINE_AA)
+        if features.is_lateral:
+            # Lateral Mode Telemetry Row 1: Nose-Shoulder Angle (Slouch Metric)
+            nose_angle = features.nose_shoulder_angle_deg
+            slouch_str = f"Nose-Shoulder Angle: {nose_angle:.1f}° (Slouch threshold: 15.0°)"
+            cv2.putText(frame, slouch_str, (card_x + 15, card_y + 90),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.48, self.COLOR_TEXT, 1, cv2.LINE_AA)
 
-        # Feature Telemetry Row 2: Forward Head Posture Z-Depth Metric (FHP)
-        z_cur = features.forward_head_z
-        z_base = baseline.mean_forward_head_z
-        z_shift = z_base - z_cur
-        fhp_str = f"Forward Head (FHP): Shift {z_shift:+.3f} (Z: {z_cur:.3f}, Base: {z_base:.3f})"
-        cv2.putText(frame, fhp_str, (card_x + 15, card_y + 112),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.48, self.COLOR_TEXT, 1, cv2.LINE_AA)
+            # Lateral Mode Telemetry Row 2: Ear Offset (FHP Metric)
+            ear_offset = features.ear_shoulder_offset_x
+            fhp_str = f"Ear-Shoulder Offset: {ear_offset:.3f} (FHP threshold: 0.08)"
+            cv2.putText(frame, fhp_str, (card_x + 15, card_y + 112),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.48, self.COLOR_TEXT, 1, cv2.LINE_AA)
+        else:
+            # Frontal Mode Telemetry Row 1: Head-to-Shoulder Ratio (Slouch Metric)
+            ratio_cur = features.head_to_shoulder_ratio
+            ratio_base = baseline.mean_h2s_ratio
+            ratio_drop_pct = ((ratio_base - ratio_cur) / max(1e-4, ratio_base)) * 100.0
+            ratio_str = f"Head Ratio: {ratio_cur:.2f} (Base: {ratio_base:.2f}) [Drop: {max(0.0, ratio_drop_pct):.1f}%]"
+            cv2.putText(frame, ratio_str, (card_x + 15, card_y + 90),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.48, self.COLOR_TEXT, 1, cv2.LINE_AA)
+
+            # Frontal Mode Telemetry Row 2: Forward Head Posture Z-Depth Metric (FHP)
+            z_cur = features.forward_head_z
+            z_base = baseline.mean_forward_head_z
+            z_shift = z_base - z_cur
+            fhp_str = f"Forward Head (FHP): Shift {z_shift:+.3f} (Z: {z_cur:.3f}, Base: {z_base:.3f})"
+            cv2.putText(frame, fhp_str, (card_x + 15, card_y + 112),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.48, self.COLOR_TEXT, 1, cv2.LINE_AA)
 
         # XAI Explanation Footer on Card
         explanation = self.generate_explanation(assessment)

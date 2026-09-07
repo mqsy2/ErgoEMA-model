@@ -90,7 +90,10 @@ def run_ergoema_simulation(
                 forward_head_z=float(row["forward_head_z"]),
                 shoulder_width_norm=float(row["shoulder_width_norm"]),
                 neck_lateral_flexion_deg=float(row["neck_flexion_deg"]),
-                timestamp=current_t
+                timestamp=current_t,
+                detected_view_angle=str(row.get("detected_view_angle", "frontal")) if pd.notna(row.get("detected_view_angle")) else "frontal",
+                ear_shoulder_offset_x=float(row.get("ear_shoulder_offset_x", 0.0)) if pd.notna(row.get("ear_shoulder_offset_x")) else 0.0,
+                nose_shoulder_angle_deg=float(row.get("nose_shoulder_angle_deg", 0.0)) if pd.notna(row.get("nose_shoulder_angle_deg")) else 0.0
             )
             smoothed = ema_filter.update(feat)
 
@@ -259,7 +262,7 @@ def train_and_optimize(dataset_path: str = "data/processed/combined_dataset.csv"
     ])
     print(bench_df.to_string(index=False))
 
-    # 5. Optional Viewpoint Ablation Analysis (Front vs Side vs Combined)
+    # 5. Optional Viewpoint Ablation Analysis (Front 0° vs Oblique 45° vs Lateral 90° vs Combined)
     ablation_df = None
     all_angles_path = "data/processed/all_angles_dataset.csv"
     if os.path.exists(all_angles_path):
@@ -268,20 +271,34 @@ def train_and_optimize(dataset_path: str = "data/processed/combined_dataset.csv"
             if "view_angle" in df_all.columns:
                 df_f = df_all[df_all["view_angle"] == "Front"]
                 df_s = df_all[df_all["view_angle"] == "Side"]
+                df_90 = df_all[df_all["view_angle"] == "90deg"]
 
-                y_tf, y_pf, _ = run_ergoema_simulation(df_f, best_params["alpha"], best_params["slouch_thresh"], best_params["sustained_window_sec"])
-                y_ts, y_ps, _ = run_ergoema_simulation(df_s, best_params["alpha"], best_params["slouch_thresh"], best_params["sustained_window_sec"])
+                ablation_rows = []
+
+                # Front View (0°)
+                if len(df_f) > 0:
+                    y_tf, y_pf, _ = run_ergoema_simulation(df_f, best_params["alpha"], best_params["slouch_thresh"], best_params["sustained_window_sec"])
+                    mf = compute_metrics(y_tf, y_pf)
+                    ablation_rows.append({"Camera Perspective": "Front View (0° - Primary Scope)", "Frames": len(df_f), "Accuracy (%)": round(mf["accuracy"]*100, 2), "Precision (%)": round(mf["precision"]*100, 2), "Recall (%)": round(mf["recall"]*100, 2), "F1-Score (%)": round(mf["f1_score"]*100, 2), "FAR (%)": round(mf["false_alarm_rate"]*100, 2)})
+
+                # Oblique Profile (45°)
+                if len(df_s) > 0:
+                    y_ts, y_ps, _ = run_ergoema_simulation(df_s, best_params["alpha"], best_params["slouch_thresh"], best_params["sustained_window_sec"])
+                    ms = compute_metrics(y_ts, y_ps)
+                    ablation_rows.append({"Camera Perspective": "Oblique Profile (45° View)", "Frames": len(df_s), "Accuracy (%)": round(ms["accuracy"]*100, 2), "Precision (%)": round(ms["precision"]*100, 2), "Recall (%)": round(ms["recall"]*100, 2), "F1-Score (%)": round(ms["f1_score"]*100, 2), "FAR (%)": round(ms["false_alarm_rate"]*100, 2)})
+
+                # Lateral Profile (90° - Kaggle Dataset)
+                if len(df_90) > 0:
+                    y_t90, y_p90, _ = run_ergoema_simulation(df_90, best_params["alpha"], best_params["slouch_thresh"], best_params["sustained_window_sec"])
+                    m90 = compute_metrics(y_t90, y_p90)
+                    ablation_rows.append({"Camera Perspective": "Lateral Profile (90° - Kaggle)", "Frames": len(df_90), "Accuracy (%)": round(m90["accuracy"]*100, 2), "Precision (%)": round(m90["precision"]*100, 2), "Recall (%)": round(m90["recall"]*100, 2), "F1-Score (%)": round(m90["f1_score"]*100, 2), "FAR (%)": round(m90["false_alarm_rate"]*100, 2)})
+
+                # All Combined
                 y_ta, y_pa, _ = run_ergoema_simulation(df_all, best_params["alpha"], best_params["slouch_thresh"], best_params["sustained_window_sec"])
-
-                mf = compute_metrics(y_tf, y_pf)
-                ms = compute_metrics(y_ts, y_ps)
                 ma = compute_metrics(y_ta, y_pa)
+                ablation_rows.append({"Camera Perspective": "All Combined Perspectives", "Frames": len(df_all), "Accuracy (%)": round(ma["accuracy"]*100, 2), "Precision (%)": round(ma["precision"]*100, 2), "Recall (%)": round(ma["recall"]*100, 2), "F1-Score (%)": round(ma["f1_score"]*100, 2), "FAR (%)": round(ma["false_alarm_rate"]*100, 2)})
 
-                ablation_df = pd.DataFrame([
-                    {"Camera Perspective": "Front View (0° - Primary Scope)", "Frames": len(df_f), "Accuracy (%)": round(mf["accuracy"]*100, 2), "Precision (%)": round(mf["precision"]*100, 2), "Recall (%)": round(mf["recall"]*100, 2), "F1-Score (%)": round(mf["f1_score"]*100, 2), "FAR (%)": round(mf["false_alarm_rate"]*100, 2)},
-                    {"Camera Perspective": "Side Profile (90° View)", "Frames": len(df_s), "Accuracy (%)": round(ms["accuracy"]*100, 2), "Precision (%)": round(ms["precision"]*100, 2), "Recall (%)": round(ms["recall"]*100, 2), "F1-Score (%)": round(ms["f1_score"]*100, 2), "FAR (%)": round(ms["false_alarm_rate"]*100, 2)},
-                    {"Camera Perspective": "All Combined Perspectives", "Frames": len(df_all), "Accuracy (%)": round(ma["accuracy"]*100, 2), "Precision (%)": round(ma["precision"]*100, 2), "Recall (%)": round(ma["recall"]*100, 2), "F1-Score (%)": round(ma["f1_score"]*100, 2), "FAR (%)": round(ma["false_alarm_rate"]*100, 2)}
-                ])
+                ablation_df = pd.DataFrame(ablation_rows)
                 print("\n[ABLATION] Camera Perspective Sensitivity Study:")
                 print(ablation_df.to_string(index=False))
         except Exception as e:
@@ -323,7 +340,8 @@ The table below demonstrates the effect of camera placement geometry on biometri
 
 ### Geometric Analysis:
 * **Front View ($0^\\circ$)**: The 2D biacromial shoulder span ($\\|\\text{{Shoulder}}_R - \\text{{Shoulder}}_L\\|$) provides an invariant denominator, yielding **{ablation_df.iloc[0]['Accuracy (%)']}% Accuracy** and a **{ablation_df.iloc[0]['FAR (%)']}% False Alarm Rate**.
-* **Side View ($90^\\circ$)**: Bilateral shoulder overlap reduces inter-shoulder distance towards zero, confirming that ErgoEMA's front-facing mathematical formulation is specifically suited for standard user webcams.
+* **Oblique View ($45^\\circ$)**: Perspective foreshortening compresses the visible shoulder width, causing mild accuracy degradation compared to direct frontal placement.
+* **Lateral View ($90^\\circ$ - Kaggle Dataset)**: Bilateral shoulder overlap reduces inter-shoulder distance towards zero, confirming that ErgoEMA's front-facing mathematical formulation is specifically suited for standard user webcams.
 """
 
     content = f"""# ErgoEMA Model Training & Empirical Validation Report
