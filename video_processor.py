@@ -41,16 +41,21 @@ class VideoDataPipeline:
         )
         self.extractor = FeatureExtractor()
 
-    # Known study participant demographic mapping
+    # Known study participant demographic mapping (de-identified)
     PARTICIPANT_PROFILES = {
-        "bigid": {"somatotype": "Endomorph", "bmi": "Overweight"},
-        "jasper": {"somatotype": "Mesomorph", "bmi": "Normal"},
-        "gab": {"somatotype": "Ectomorph", "bmi": "Normal"},
-        "margot": {"somatotype": "Mesomorph", "bmi": "Normal"}
+        "participant1": {"somatotype": "Mesomorph", "bmi": "Normal"},
+        "participant2": {"somatotype": "Mesomorph", "bmi": "Normal"},
+        "participant3": {"somatotype": "Endomorph", "bmi": "Normal"},
+        "participant4": {"somatotype": "Endomorph", "bmi": "Normal"},
+        "participant5": {"somatotype": "Endomorph", "bmi": "Normal"},
+        "participant6": {"somatotype": "Mesomorph", "bmi": "Normal"},
+        "participant7": {"somatotype": "Ectomorph", "bmi": "Normal"},
+        "participant8": {"somatotype": "Mesomorph", "bmi": "Normal"},
+        "participant9": {"somatotype": "Endomorph", "bmi": "Overweight"},
     }
 
     def _resolve_demographics(self, subject_id: str, default_somatotype: str, default_bmi: str) -> Tuple[str, str]:
-        """Auto-resolves somatotype and BMI from participant name if matched."""
+        """Auto-resolves somatotype and BMI from participant ID if matched."""
         sub_lower = subject_id.lower()
         for key, profile in self.PARTICIPANT_PROFILES.items():
             if key in sub_lower:

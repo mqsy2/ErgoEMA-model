@@ -66,8 +66,11 @@ class LateralFeatureExtractor:
     """
 
     # Thresholds for auto-labeling posture from spine angles
-    SLOUCH_ANGLE_THRESHOLD_DEG: float = 155.0      # Below this = slouch (cervical-thoracic-lumbar angle)
-    FHP_FORWARD_OFFSET_THRESHOLD: float = 0.03     # Cervical forward of thoracic by this normalized amount = FHP
+    # Clinical basis (expert-validated):
+    #   - Normal thoracic kyphosis: 20°-40° curvature. Hyperkyphosis (pathologic): >40°.
+    #   - Forward Head Posture (FHP): Craniovertebral angle (CVA) < 50°.
+    SLOUCH_ANGLE_THRESHOLD_DEG: float = 140.0      # Below this = slouch (>40° curvature = hyperkyphosis)
+    FHP_FORWARD_OFFSET_THRESHOLD: float = 0.06     # Cervical forward of thoracic (aligned with CVA < 50° guidance)
 
     def _angle_between_three_points(
         self,
@@ -119,12 +122,14 @@ class LateralFeatureExtractor:
         )
 
         # 3. Overall Spine Vertical Deviation
-        spine_dx = keypoints.cervical_x - keypoints.sacral_x
+        # Determine facing direction (cervical is forward of thoracic in slouch/FHP)
+        facing_sign = 1.0 if keypoints.cervical_x >= keypoints.thoracic_x else -1.0
+        spine_dx = (keypoints.cervical_x - keypoints.sacral_x) * facing_sign
         spine_dy = keypoints.cervical_y - keypoints.sacral_y
         vertical_angle = float(np.degrees(np.arctan2(spine_dx, -spine_dy)))
 
-        # 4. Cervical Forward Offset (FHP indicator)
-        cervical_forward = keypoints.cervical_x - keypoints.thoracic_x
+        # 4. Cervical Forward Offset (FHP indicator, magnitude of forward cervical shift)
+        cervical_forward = float(abs(keypoints.cervical_x - keypoints.thoracic_x))
 
         # 5. Spine Length (Euclidean distance from cervical to sacral, normalized)
         spine_length = float(np.sqrt(

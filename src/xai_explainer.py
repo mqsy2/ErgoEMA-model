@@ -109,14 +109,14 @@ class XAIExplainer:
 
         if features.is_lateral:
             # Lateral Mode Telemetry Row 1: Nose-Shoulder Angle (Slouch Metric)
-            nose_angle = features.nose_shoulder_angle_deg
-            slouch_str = f"Nose-Shoulder Angle: {nose_angle:.1f}° (Slouch threshold: 15.0°)"
+            nose_angle = abs(features.nose_shoulder_angle_deg)
+            slouch_str = f"Nose-Shoulder Angle: {nose_angle:.1f}° (Slouch threshold: 55.0°)"
             cv2.putText(frame, slouch_str, (card_x + 15, card_y + 90),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.48, self.COLOR_TEXT, 1, cv2.LINE_AA)
 
             # Lateral Mode Telemetry Row 2: Ear Offset (FHP Metric)
-            ear_offset = features.ear_shoulder_offset_x
-            fhp_str = f"Ear-Shoulder Offset: {ear_offset:.3f} (FHP threshold: 0.08)"
+            ear_offset = abs(features.ear_shoulder_offset_x)
+            fhp_str = f"Ear-Shoulder Offset: {ear_offset:.3f} (FHP threshold: 0.140)"
             cv2.putText(frame, fhp_str, (card_x + 15, card_y + 112),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.48, self.COLOR_TEXT, 1, cv2.LINE_AA)
         else:

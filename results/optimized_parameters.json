@@ -1,144 +1,244 @@
 {
     "optimal_hyperparameters": {
-        "alpha": 0.12,
-        "slouch_thresh": 0.1,
-        "sustained_window_sec": 0.2
+        "alpha": 0.08,
+        "slouch_thresh": 0.08
     },
-    "validation_metrics": {
-        "accuracy": 0.9479166666666666,
-        "precision": 0.9621109607577808,
-        "recall": 0.9288047028086218,
-        "specificity": 0.9657910812461821,
-        "f1_score": 0.9451645064805584,
-        "false_alarm_rate": 0.03420891875381796,
-        "tp": 1422,
-        "tn": 1581,
-        "fp": 56,
-        "fn": 109
+    "loso_validation_metrics": {
+        "accuracy": 0.7062338720630178,
+        "precision": 0.684144623571764,
+        "recall": 0.6544392873184608,
+        "specificity": 0.749223313035914,
+        "f1_score": 0.6689623507805326,
+        "false_alarm_rate": 0.250776686964086,
+        "tp": 4371,
+        "tn": 6029,
+        "fp": 2018,
+        "fn": 2308
     },
-    "total_training_frames": 3168,
-    "participant_count": 4,
+    "loso_macro_average": {
+        "accuracy": 0.7613307265167806,
+        "precision": 0.6921347686801484,
+        "recall": 0.8189390124231133,
+        "specificity": 0.6662302945494127,
+        "f1_score": 0.7293942273607348,
+        "false_alarm_rate": 0.33376970545058726
+    },
+    "in_sample_metrics": {
+        "accuracy": 0.7062338720630178,
+        "precision": 0.684144623571764,
+        "recall": 0.6544392873184608,
+        "specificity": 0.749223313035914,
+        "f1_score": 0.6689623507805326,
+        "false_alarm_rate": 0.250776686964086,
+        "tp": 4371,
+        "tn": 6029,
+        "fp": 2018,
+        "fn": 2308
+    },
+    "total_training_frames": 14726,
+    "participant_count": 9,
     "loso_cross_validation": [
         {
-            "Participant": "MARGOT ANTOINETTE GABON",
+            "Participant": "Participant1",
+            "Somatotype": "Mesomorph",
+            "BMI Category": "Normal",
             "Frames": 1389,
-            "Accuracy (%)": 96.11,
-            "Precision (%)": 92.98,
-            "Recall (%)": 99.24,
-            "Specificity (%)": 93.33,
-            "F1-Score (%)": 96.01
+            "Tuned alpha": 0.08,
+            "Tuned Slouch Drop (%)": 8.0,
+            "Accuracy (%)": 98.92,
+            "Precision (%)": 97.76,
+            "Recall (%)": 100.0,
+            "Specificity (%)": 97.96,
+            "F1-Score (%)": 98.87
         },
         {
-            "Participant": "Jasper Valdez",
-            "Frames": 745,
-            "Accuracy (%)": 97.99,
-            "Precision (%)": 98.04,
-            "Recall (%)": 97.77,
-            "Specificity (%)": 98.19,
-            "F1-Score (%)": 97.9
+            "Participant": "Participant2",
+            "Somatotype": "Mesomorph",
+            "BMI Category": "Normal",
+            "Frames": 1286,
+            "Tuned alpha": 0.08,
+            "Tuned Slouch Drop (%)": 8.0,
+            "Accuracy (%)": 71.62,
+            "Precision (%)": 65.1,
+            "Recall (%)": 96.36,
+            "Specificity (%)": 45.53,
+            "F1-Score (%)": 77.7
         },
         {
-            "Participant": "Bigid lagger",
-            "Frames": 717,
-            "Accuracy (%)": 99.02,
-            "Precision (%)": 100.0,
-            "Recall (%)": 98.04,
-            "Specificity (%)": 100.0,
-            "F1-Score (%)": 99.01
+            "Participant": "Participant3",
+            "Somatotype": "Endomorph",
+            "BMI Category": "Normal",
+            "Frames": 4958,
+            "Tuned alpha": 0.08,
+            "Tuned Slouch Drop (%)": 8.0,
+            "Accuracy (%)": 60.99,
+            "Precision (%)": 62.18,
+            "Recall (%)": 53.01,
+            "Specificity (%)": 68.73,
+            "F1-Score (%)": 57.23
         },
         {
-            "Participant": "Gab Villanueva",
+            "Participant": "Participant4",
+            "Somatotype": "Endomorph",
+            "BMI Category": "Normal",
+            "Frames": 3415,
+            "Tuned alpha": 0.08,
+            "Tuned Slouch Drop (%)": 8.0,
+            "Accuracy (%)": 63.54,
+            "Precision (%)": 32.31,
+            "Recall (%)": 9.29,
+            "Specificity (%)": 90.37,
+            "F1-Score (%)": 14.43
+        },
+        {
+            "Participant": "Participant5",
+            "Somatotype": "Endomorph",
+            "BMI Category": "Normal",
+            "Frames": 1146,
+            "Tuned alpha": 0.08,
+            "Tuned Slouch Drop (%)": 8.0,
+            "Accuracy (%)": 88.74,
+            "Precision (%)": 95.98,
+            "Recall (%)": 78.38,
+            "Specificity (%)": 97.29,
+            "F1-Score (%)": 86.29
+        },
+        {
+            "Participant": "Participant6",
+            "Somatotype": "Mesomorph",
+            "BMI Category": "Normal",
+            "Frames": 753,
+            "Tuned alpha": 0.08,
+            "Tuned Slouch Drop (%)": 8.0,
+            "Accuracy (%)": 67.73,
+            "Precision (%)": 62.15,
+            "Recall (%)": 100.0,
+            "Specificity (%)": 31.36,
+            "F1-Score (%)": 76.66
+        },
+        {
+            "Participant": "Participant7",
+            "Somatotype": "Ectomorph",
+            "BMI Category": "Normal",
             "Frames": 317,
-            "Accuracy (%)": 71.92,
-            "Precision (%)": 100.0,
-            "Recall (%)": 44.72,
-            "Specificity (%)": 100.0,
-            "F1-Score (%)": 61.8
+            "Tuned alpha": 0.08,
+            "Tuned Slouch Drop (%)": 8.0,
+            "Accuracy (%)": 78.23,
+            "Precision (%)": 70.0,
+            "Recall (%)": 100.0,
+            "Specificity (%)": 55.77,
+            "F1-Score (%)": 82.35
+        },
+        {
+            "Participant": "Participant8",
+            "Somatotype": "Mesomorph",
+            "BMI Category": "Normal",
+            "Frames": 745,
+            "Tuned alpha": 0.08,
+            "Tuned Slouch Drop (%)": 8.0,
+            "Accuracy (%)": 77.32,
+            "Precision (%)": 67.93,
+            "Recall (%)": 100.0,
+            "Specificity (%)": 56.33,
+            "F1-Score (%)": 80.9
+        },
+        {
+            "Participant": "Participant9",
+            "Somatotype": "Endomorph",
+            "BMI Category": "Overweight",
+            "Frames": 717,
+            "Tuned alpha": 0.08,
+            "Tuned Slouch Drop (%)": 8.0,
+            "Accuracy (%)": 78.1,
+            "Precision (%)": 69.51,
+            "Recall (%)": 100.0,
+            "Specificity (%)": 56.27,
+            "F1-Score (%)": 82.02
         }
     ],
     "benchmark_comparison": [
         {
             "Model Architecture": "ErgoEMA (Adaptive Time-Series)",
-            "Accuracy (%)": 94.79,
-            "Precision (%)": 96.21,
-            "Recall (%)": 92.88,
-            "F1-Score (%)": 94.52,
-            "FAR (%)": 3.42,
-            "Latency (ms)": 1.2
+            "Accuracy (%)": 70.62,
+            "Precision (%)": 68.41,
+            "Recall (%)": 65.44,
+            "F1-Score (%)": 66.9,
+            "FAR (%)": 25.08,
+            "Latency (ms)": 0.0098
         },
         {
             "Model Architecture": "Random Forest (100 Trees)",
-            "Accuracy (%)": 100.0,
-            "Precision (%)": 100.0,
-            "Recall (%)": 100.0,
-            "F1-Score (%)": 100.0,
-            "FAR (%)": 0.0,
-            "Latency (ms)": 14.8
+            "Accuracy (%)": 43.8,
+            "Precision (%)": 39.38,
+            "Recall (%)": 44.33,
+            "F1-Score (%)": 41.71,
+            "FAR (%)": 56.64,
+            "Latency (ms)": 4.3029
         },
         {
             "Model Architecture": "Support Vector Machine (RBF)",
-            "Accuracy (%)": 59.44,
-            "Precision (%)": 68.3,
-            "Recall (%)": 29.98,
-            "F1-Score (%)": 41.67,
-            "FAR (%)": 13.01,
-            "Latency (ms)": 28.5
+            "Accuracy (%)": 60.59,
+            "Precision (%)": 56.66,
+            "Recall (%)": 55.76,
+            "F1-Score (%)": 56.21,
+            "FAR (%)": 35.39,
+            "Latency (ms)": 0.7148
         },
         {
             "Model Architecture": "Logistic Regression",
-            "Accuracy (%)": 88.1,
-            "Precision (%)": 90.63,
-            "Recall (%)": 84.06,
-            "F1-Score (%)": 87.22,
-            "FAR (%)": 8.12,
-            "Latency (ms)": 0.8
+            "Accuracy (%)": 49.54,
+            "Precision (%)": 43.65,
+            "Recall (%)": 38.7,
+            "F1-Score (%)": 41.03,
+            "FAR (%)": 41.47,
+            "Latency (ms)": 0.0719
         },
         {
             "Model Architecture": "Static Rigid Threshold",
-            "Accuracy (%)": 79.67,
-            "Precision (%)": 85.34,
-            "Recall (%)": 69.95,
-            "F1-Score (%)": 76.88,
-            "FAR (%)": 11.24,
-            "Latency (ms)": 0.4
+            "Accuracy (%)": 47.99,
+            "Precision (%)": 42.07,
+            "Recall (%)": 38.94,
+            "F1-Score (%)": 40.45,
+            "FAR (%)": 44.5,
+            "Latency (ms)": 0.0001
         }
     ],
     "ablation_viewpoints": [
         {
             "Camera Perspective": "Front View (0\u00b0 - Primary Scope)",
-            "Frames": 3168,
-            "Accuracy (%)": 94.79,
-            "Precision (%)": 96.21,
-            "Recall (%)": 92.88,
-            "F1-Score (%)": 94.52,
-            "FAR (%)": 3.42
+            "Frames": 14726,
+            "Accuracy (%)": 70.62,
+            "Precision (%)": 68.41,
+            "Recall (%)": 65.44,
+            "F1-Score (%)": 66.9,
+            "FAR (%)": 25.08
         },
         {
             "Camera Perspective": "Oblique Profile (45\u00b0 View)",
-            "Frames": 6372,
-            "Accuracy (%)": 79.91,
-            "Precision (%)": 71.7,
-            "Recall (%)": 98.19,
-            "F1-Score (%)": 82.88,
-            "FAR (%)": 38.03
+            "Frames": 30827,
+            "Accuracy (%)": 58.11,
+            "Precision (%)": 79.46,
+            "Recall (%)": 22.28,
+            "F1-Score (%)": 34.8,
+            "FAR (%)": 5.8
         },
         {
-            "Camera Perspective": "Lateral Profile (90\u00b0 - Kaggle)",
-            "Frames": 297,
-            "Accuracy (%)": 28.28,
-            "Precision (%)": 23.83,
-            "Recall (%)": 97.06,
-            "F1-Score (%)": 38.26,
-            "FAR (%)": 92.14
+            "Camera Perspective": "Lateral Profile (90\u00b0 View)",
+            "Frames": 3560,
+            "Accuracy (%)": 96.84,
+            "Precision (%)": 94.04,
+            "Recall (%)": 100.0,
+            "F1-Score (%)": 96.93,
+            "FAR (%)": 6.28
         },
         {
             "Camera Perspective": "All Combined Perspectives",
-            "Frames": 9837,
-            "Accuracy (%)": 70.54,
-            "Precision (%)": 88.54,
-            "Recall (%)": 44.86,
-            "F1-Score (%)": 59.55,
-            "FAR (%)": 5.43
+            "Frames": 49113,
+            "Accuracy (%)": 57.04,
+            "Precision (%)": 64.59,
+            "Recall (%)": 26.11,
+            "F1-Score (%)": 37.18,
+            "FAR (%)": 13.59
         }
     ]
 }

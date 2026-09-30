@@ -63,8 +63,8 @@ class PoseDetector:
     
     def __init__(
         self,
-        min_detection_confidence: float = 0.5,
-        min_tracking_confidence: float = 0.5,
+        min_detection_confidence: float = 0.35,
+        min_tracking_confidence: float = 0.35,
         model_complexity: int = 1,
         enable_segmentation: bool = False,
     ):
@@ -106,6 +106,11 @@ class PoseDetector:
                 static_image_mode=False
             )
             self.landmarker = None
+
+        # Temporal stability and smoothing state for lateral spine rendering
+        self._prev_vis_side = 'LEFT'
+        self._prev_back_sign = -1.0
+        self._prev_spine_pts = None
 
     def extract_landmarks(self, frame_bgr: np.ndarray) -> Tuple[Optional[PoseLandmarks], Any]:
         """Processes a BGR video frame and extracts 3D upper-body landmarks."""
@@ -200,50 +205,119 @@ class PoseDetector:
             return frame_bgr
 
         if is_lateral:
-            # === LATERAL MODE: Kaggle Spine Keypoints ===
-            # Identify the most visible side (left or right)
+            # === LATERAL MODE: Anatomical Spine Keypoints (Cervical, Thoracic, Lumbar, Sacral) ===
+            # Identify the camera-facing side (left or right) with hysteresis
+            nose = landmarks[0]
             l_ear, r_ear = landmarks[7], landmarks[8]
             l_sh, r_sh = landmarks[11], landmarks[12]
             l_hip, r_hip = landmarks[23], landmarks[24]
             
-            l_vis = (getattr(l_ear, 'visibility', 0.0) or 0.0) + (getattr(l_sh, 'visibility', 0.0) or 0.0)
-            r_vis = (getattr(r_ear, 'visibility', 0.0) or 0.0) + (getattr(r_sh, 'visibility', 0.0) or 0.0)
-            
-            if l_vis > r_vis:
-                cervical = l_ear
-                thoracic = l_sh
-                sacral = l_hip
+            # In MediaPipe 3D coordinates, camera-facing side has smaller (more negative) Z
+            if hasattr(l_sh, 'z') and hasattr(r_sh, 'z') and abs(l_sh.z - r_sh.z) > 0.12:
+                vis_side = 'LEFT' if l_sh.z < r_sh.z else 'RIGHT'
+                self._prev_vis_side = vis_side
             else:
-                cervical = r_ear
-                thoracic = r_sh
-                sacral = r_hip
-                
-            c_x, c_y = int(cervical.x * w), int(cervical.y * h)
-            t_x, t_y = int(thoracic.x * w), int(thoracic.y * h)
-            s_x, s_y = int(sacral.x * w), int(sacral.y * h)
+                l_vis = (getattr(l_ear, 'visibility', 0.0) or 0.0) + (getattr(l_sh, 'visibility', 0.0) or 0.0)
+                r_vis = (getattr(r_ear, 'visibility', 0.0) or 0.0) + (getattr(r_sh, 'visibility', 0.0) or 0.0)
+                if abs(l_vis - r_vis) > 0.2:
+                    vis_side = 'LEFT' if l_vis >= r_vis else 'RIGHT'
+                    self._prev_vis_side = vis_side
+                else:
+                    vis_side = self._prev_vis_side
             
-            # Synthesize Lumbar spine as ~60% down the distance from Thoracic to Sacral
-            l_x = int(t_x + 0.6 * (s_x - t_x))
-            l_y = int(t_y + 0.6 * (s_y - t_y))
-            
-            spine_pts = [(c_x, c_y), (t_x, t_y), (l_x, l_y), (s_x, s_y)]
+            vis_ear = l_ear if vis_side == 'LEFT' else r_ear
+            vis_sh = l_sh if vis_side == 'LEFT' else r_sh
+            vis_hip = l_hip if vis_side == 'LEFT' else r_hip
+
+            # Determine facing direction stably:
+            # In lateral profile, nose extends forward of ear and shoulder in facing direction.
+            # Blend nose-to-ear and nose-to-shoulder with deadband hysteresis:
+            ear_dx = getattr(nose, 'x', vis_ear.x) - vis_ear.x
+            sh_dx = getattr(nose, 'x', vis_sh.x) - vis_sh.x
+            facing_score = 0.6 * ear_dx + 0.4 * sh_dx
+
+            if abs(facing_score) > 0.02:
+                # facing_score > 0: nose is to the right (+X) -> user faces RIGHT. Back is to the LEFT (-X, back_sign = -1.0).
+                # facing_score < 0: nose is to the left (-X)  -> user faces LEFT. Back is to the RIGHT (+X, back_sign = +1.0).
+                self._prev_back_sign = -1.0 if facing_score > 0 else 1.0
+            back_sign = self._prev_back_sign
+
+            # Anatomical scale reference in profile view
+            head_depth = max(abs(ear_dx), 0.08)
+
+            # Torso depth offset from shoulder to dorsal back contour
+            sh_offset = np.clip(0.65 * head_depth, 0.07, 0.11)
+
+            # 1. THORACIC SPINE (T1-T12):
+            # Anchor to shoulder X shifted back toward dorsal contour
+            sh_y = min(vis_sh.y, vis_ear.y + 0.28)
+            t_norm_x = vis_sh.x + back_sign * sh_offset
+            t_norm_y = sh_y + 0.03
+
+            # 2. CERVICAL SPINE (C7):
+            # Base of the neck, directly above T1, smoothly meeting posterior nape
+            nape_x = vis_ear.x + back_sign * (0.50 * head_depth)
+            c_norm_x = t_norm_x + 0.35 * (nape_x - t_norm_x)
+            c_norm_y = max(0.02, t_norm_y - 0.12)
+
+            # 3. SACRAL SPINE (S1-S5):
+            # Lower pelvic anchor resting against chair back
+            hip_vis = getattr(vis_hip, 'visibility', 0.0) or 0.0
+            if hip_vis > 0.4 and vis_hip.y < 0.95:
+                s_norm_x = vis_hip.x + back_sign * 0.04
+                s_norm_y = min(0.95, vis_hip.y)
+            else:
+                # Extrapolate downward along dorsal torso contour
+                s_norm_x = t_norm_x + back_sign * 0.06
+                s_norm_y = min(0.95, t_norm_y + 0.30)
+
+            # 4. LUMBAR SPINE (L1-L5):
+            # Mid-point between Thoracic and Sacral
+            l_norm_x = (t_norm_x + s_norm_x) / 2.0
+            l_norm_y = (t_norm_y + s_norm_y) / 2.0
+
+            # Clamp coordinates to frame boundaries
+            c_x = int(np.clip(c_norm_x, 0.02, 0.98) * w)
+            c_y = int(np.clip(c_norm_y, 0.02, 0.98) * h)
+            t_x = int(np.clip(t_norm_x, 0.02, 0.98) * w)
+            t_y = int(np.clip(t_norm_y, 0.02, 0.98) * h)
+            l_x = int(np.clip(l_norm_x, 0.02, 0.98) * w)
+            l_y = int(np.clip(l_norm_y, 0.02, 0.98) * h)
+            s_x = int(np.clip(s_norm_x, 0.02, 0.98) * w)
+            s_y = int(np.clip(s_norm_y, 0.02, 0.98) * h)
+
+            raw_pts = np.array([[c_x, c_y], [t_x, t_y], [l_x, l_y], [s_x, s_y]], dtype=np.float32)
+
+            # Temporal EMA Smoothing across video frames to prevent jitter and spinning
+            if self._prev_spine_pts is None:
+                self._prev_spine_pts = raw_pts
+            else:
+                self._prev_spine_pts = 0.35 * raw_pts + 0.65 * self._prev_spine_pts
+
+            spine_pts = [(int(p[0]), int(p[1])) for p in self._prev_spine_pts]
             spine_labels = ["CERVICAL SPINE", "THORACIC", "LUMBAR", "SACRAL"]
-            
+
             # Draw connecting spine line (yellow)
             for i in range(3):
                 cv2.line(frame_bgr, spine_pts[i], spine_pts[i+1], (0, 255, 255), 2, cv2.LINE_AA)
-                
+
             # Draw the 4 keypoints with labels
-            colors = [(0, 0, 255), (0, 255, 0), (255, 0, 0), (0, 255, 255)] # Red, Green, Blue, Yellow
+            colors = [(0, 0, 255), (0, 255, 0), (255, 0, 0), (0, 255, 255)]  # Red, Green, Blue, Yellow
             for i in range(4):
                 pt = spine_pts[i]
                 cv2.circle(frame_bgr, pt, 6, colors[i], -1, cv2.LINE_AA)
                 cv2.circle(frame_bgr, pt, 7, (0, 0, 0), 1, cv2.LINE_AA)
-                # Label text
-                cv2.putText(frame_bgr, spine_labels[i], (pt[0] + 10, pt[1] + 5), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 2, cv2.LINE_AA)
+                # Offset text toward body interior so it stays visible
+                text_offset_x = 15 if back_sign < 0 else -180
+                cv2.putText(frame_bgr, spine_labels[i], (pt[0] + text_offset_x, pt[1] + 5), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 0), 2, cv2.LINE_AA)
+                cv2.putText(frame_bgr, spine_labels[i], (pt[0] + text_offset_x, pt[1] + 5), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1, cv2.LINE_AA)
 
             return frame_bgr
+
+        # Reset spine smoothing when returning to frontal view
+        self._prev_spine_pts = None
 
         # === FRONTAL MODE: Standard Upper Body Skeleton ===
         # Draw bone connections

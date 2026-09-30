@@ -129,28 +129,38 @@ class FeatureExtractor:
         shoulder_tilt_deg = float(np.degrees(shoulder_tilt_rad))
 
         if shoulder_width < 1e-4:
-            # Shoulders completely overlapped
-            return self._extract_lateral(pose, mid_shoulder_x, mid_shoulder_y, mid_shoulder_z, shoulder_width, timestamp)
+            # Shoulders completely overlapped — use the more visible one
+            vis_shoulder = ls if ls.visibility > rs.visibility else rs
+            return self._extract_lateral(pose, vis_shoulder.x, vis_shoulder.y, vis_shoulder.z, shoulder_width, timestamp)
 
-        # Robust Auto-Detect for Lateral View (90°)
-        is_lateral_view = False
-        
-        # Metric A: 2D Shoulder width collapse (ideal case)
-        if shoulder_width < self.LATERAL_SHOULDER_WIDTH_THRESH:
-            is_lateral_view = True
-            
-        # Metric B: 3D Z-depth separation proportional to 2D width
-        # When turned 90 degrees, the 2D width collapses and the Z difference maximizes.
+        # Robust 3D Biomechanical View Angle Detection:
+        # 1. In a 90° lateral profile view:
+        #    - Cranium separates ears along camera optical axis (ear_z_diff > 0.08).
+        #    - Torso width collapses (shoulder_width < 0.20) and shoulder_z_diff is large (> 0.20).
+        # 2. In frontal or slight oblique view:
+        #    - Both ears are roughly equidistant from camera (ear_z_diff < 0.06).
+        ear_z_diff = abs(le.z - re.z)
         shoulder_z_diff = abs(ls.z - rs.z)
-        if shoulder_width > 0 and (shoulder_z_diff / shoulder_width) > 1.5:
-            is_lateral_view = True
-            
-        # Metric C: Extreme shoulder tilt (caused by MediaPipe hallucinating the occluded shoulder down the arm)
-        if abs(shoulder_tilt_deg) > 50.0:
+        
+        is_lateral_view = False
+        if ear_z_diff > 0.08:
+            if shoulder_width < self.LATERAL_SHOULDER_WIDTH_THRESH:
+                is_lateral_view = True
+            elif shoulder_z_diff > 0.20 and (shoulder_z_diff / max(shoulder_width, 1e-4)) > 1.4:
+                is_lateral_view = True
+        elif shoulder_width < self.LATERAL_SHOULDER_WIDTH_THRESH and shoulder_z_diff > 0.25:
             is_lateral_view = True
 
         if is_lateral_view:
-            return self._extract_lateral(pose, mid_shoulder_x, mid_shoulder_y, mid_shoulder_z, shoulder_width, timestamp)
+            # Use the camera-facing shoulder directly (via 3D Z-depth or visibility)
+            # to avoid pulling the reference forward with the hallucinated occluded shoulder.
+            if abs(ls.z - rs.z) > 0.08:
+                vis_sh = ls if ls.z < rs.z else rs
+            elif ls.visibility >= rs.visibility:
+                vis_sh = ls
+            else:
+                vis_sh = rs
+            return self._extract_lateral(pose, vis_sh.x, vis_sh.y, vis_sh.z, shoulder_width, timestamp)
 
         # 3. Normalized Head-to-Shoulder Vertical Compression Ratio (R_H2S)
         # In image coordinates, y=0 is top, y=1 is bottom.
@@ -202,14 +212,19 @@ class FeatureExtractor:
     def _extract_lateral(
         self,
         pose: PoseLandmarks,
-        mid_shoulder_x: float,
-        mid_shoulder_y: float,
-        mid_shoulder_z: float,
+        shoulder_ref_x: float,
+        shoulder_ref_y: float,
+        shoulder_ref_z: float,
         shoulder_width: float,
         timestamp: Optional[float] = None
     ) -> Optional[PostureFeatures]:
         """
         Computes lateral (90° side-profile) posture metrics.
+
+        The shoulder_ref_x/y/z should be the VISIBLE (camera-facing) shoulder's
+        coordinates, NOT the midpoint of both shoulders. In a 90° view, the
+        occluded back shoulder is unreliably hallucinated by MediaPipe.
+
         Uses ear-to-shoulder horizontal displacement and nose-to-shoulder angle
         instead of the biacromial R_H2S ratio which breaks at 90°.
         """
@@ -224,30 +239,35 @@ class FeatureExtractor:
         elif re.visibility > 0.3:
             visible_ear = re
 
+        # Determine facing direction: 1.0 if facing right (+X), -1.0 if facing left (-X)
+        # Nose is horizontally forward of the shoulder in the direction the user faces
+        facing_sign = 1.0 if nose.x >= shoulder_ref_x else -1.0
+
         # 1. Ear-to-Shoulder Horizontal Offset (primary FHP metric for lateral view)
-        # In side view, if the ear is significantly forward (positive X) of the shoulder, it's FHP
+        # Normalized by facing_sign so forward head displacement is ALWAYS positive
         ear_shoulder_offset_x = 0.0
         if visible_ear is not None:
-            ear_shoulder_offset_x = float(visible_ear.x - mid_shoulder_x)
+            ear_shoulder_offset_x = float((visible_ear.x - shoulder_ref_x) * facing_sign)
         else:
             # Fallback: use nose horizontal offset
-            ear_shoulder_offset_x = float(nose.x - mid_shoulder_x)
+            ear_shoulder_offset_x = float((nose.x - shoulder_ref_x) * facing_sign)
 
         # 2. Nose-to-Shoulder Angle vs Vertical (primary slouch metric for lateral view)
         # A straight vertical line from shoulder to head = 0°. Forward lean increases this angle.
-        vec_x = nose.x - mid_shoulder_x
-        vec_y = nose.y - mid_shoulder_y  # negative when head is above shoulder
+        # Normalized by facing_sign so forward lean angle is always positive
+        vec_x = (nose.x - shoulder_ref_x) * facing_sign
+        vec_y = nose.y - shoulder_ref_y  # negative when head is above shoulder
         nose_shoulder_angle = float(np.degrees(np.arctan2(vec_x, -vec_y)))
 
         # 3. Vertical distance normalized by a body-proportional reference
         # Use nose-to-shoulder vertical distance as a self-referencing scale
-        delta_y = mid_shoulder_y - nose.y
+        delta_y = shoulder_ref_y - nose.y
         vertical_dist = max(abs(delta_y), 1e-4)
         # Create a pseudo H2S ratio using the vertical distance and horizontal offset
         lateral_h2s = float(delta_y / vertical_dist)  # Will be ~1.0 for upright, <1.0 for slouch
 
         # 4. Forward Head Z-depth (still available from MediaPipe 3D estimation)
-        forward_head_z = float(nose.z - mid_shoulder_z)
+        forward_head_z = float(nose.z - shoulder_ref_z)
 
         return PostureFeatures(
             head_to_shoulder_ratio=lateral_h2s,

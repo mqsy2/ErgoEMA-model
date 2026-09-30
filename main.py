@@ -8,7 +8,7 @@ import argparse
 import cv2
 import numpy as np
 
-from config import ErgoConfig
+from config import ErgoConfig, OPTIMIZED_PARAMS_PATH
 from src.pose_detector import PoseDetector
 from src.feature_extractor import FeatureExtractor
 from src.ema_filter import EMAFilter
@@ -19,13 +19,22 @@ from src.xai_explainer import XAIExplainer
 def main():
     parser = argparse.ArgumentParser(description="ErgoEMA Live Real-Time Posture Monitor")
     parser.add_argument("--camera", type=int, default=0, help="Camera device index (default: 0)")
-    parser.add_argument("--alpha", type=float, default=0.15, help="EMA smoothing factor (default: 0.15)")
+    parser.add_argument("--alpha", type=float, default=None, help="EMA smoothing factor (default: value tuned by train.py)")
+    parser.add_argument("--params", type=str, default=OPTIMIZED_PARAMS_PATH, help="Path to tuned hyperparameters JSON written by train.py")
     parser.add_argument("--baseline", type=str, default=None, help="Path to pre-saved baseline JSON")
     args = parser.parse_args()
 
     config = ErgoConfig()
     config.CAMERA_INDEX = args.camera
-    config.DEFAULT_EMA_ALPHA = args.alpha
+
+    # Hyperparameter precedence: --alpha flag > tuned values from train.py > config.py defaults
+    if config.load_optimized(args.params):
+        print(f"[INFO] Loaded tuned hyperparameters from: {args.params}")
+    else:
+        print(f"[WARN] No tuned hyperparameters found at '{args.params}'. Using config.py defaults (run train.py to generate them).")
+    if args.alpha is not None:
+        config.DEFAULT_EMA_ALPHA = args.alpha
+    print(f"[INFO] EMA alpha = {config.DEFAULT_EMA_ALPHA}, slouch drop threshold = {config.SLOUCH_RATIO_DROP_THRESH * 100:.1f}%, alert window = {config.SUSTAINED_ALERT_WINDOW_SEC} s")
 
     # Initialize Modules
     detector = PoseDetector(

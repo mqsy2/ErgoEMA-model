@@ -61,32 +61,35 @@ class PostureClassifier:
 
         if smoothed_feat.is_lateral:
             # === LATERAL MODE (90° Side Profile) ===
-            # Use nose-shoulder angle as the primary slouch metric
-            # In upright side-profile: angle is close to 0° (head directly above shoulders)
-            # In slouch: angle increases as head moves forward
-            nose_angle = abs(smoothed_feat.nose_shoulder_angle_deg)
-            LATERAL_SLOUCH_ANGLE_THRESH = 15.0  # degrees
+            # Clinical basis (expert-validated):
+            #   - Normal thoracic kyphosis: 20°-40°. Pathologic slouching (hyperkyphosis): >40°.
+            #   - In lateral camera projection, nose-to-shoulder angle exceeds ~55° during slouching.
+            #   - Forward Head Posture (FHP): CVA < 50° ≈ prominent anterior ear translation (>0.14 normalized units).
+            #
+            # Use absolute values to support both left-facing and right-facing camera orientations:
+            nose_angle_mag = abs(smoothed_feat.nose_shoulder_angle_deg)
+            LATERAL_SLOUCH_ANGLE_THRESH = 55.0  # degrees (clinical slouch / hyperkyphosis)
 
-            if nose_angle > LATERAL_SLOUCH_ANGLE_THRESH:
-                severity = nose_angle / max(1.0, LATERAL_SLOUCH_ANGLE_THRESH)
+            if nose_angle_mag > LATERAL_SLOUCH_ANGLE_THRESH:
+                severity = nose_angle_mag / max(1.0, LATERAL_SLOUCH_ANGLE_THRESH)
                 active_violations[PostureState.SLOUCH] = severity
                 reasons.append(
-                    f"[LATERAL] Head forward {nose_angle:.1f}° from vertical (threshold: {LATERAL_SLOUCH_ANGLE_THRESH}°)"
+                    f"[LATERAL] Head forward {nose_angle_mag:.1f}° from vertical (threshold: {LATERAL_SLOUCH_ANGLE_THRESH}°)"
                 )
 
-            # Use ear-shoulder horizontal offset as FHP metric
-            ear_offset = abs(smoothed_feat.ear_shoulder_offset_x)
-            LATERAL_FHP_OFFSET_THRESH = 0.08  # normalized units
+            # Ear-shoulder horizontal offset as FHP metric (magnitude for orientation invariance)
+            ear_offset_mag = abs(smoothed_feat.ear_shoulder_offset_x)
+            LATERAL_FHP_OFFSET_THRESH = 0.14  # normalized units (clinical FHP threshold)
 
-            if ear_offset > LATERAL_FHP_OFFSET_THRESH:
-                severity = ear_offset / max(1e-4, LATERAL_FHP_OFFSET_THRESH)
+            if ear_offset_mag > LATERAL_FHP_OFFSET_THRESH:
+                severity = ear_offset_mag / max(1e-4, LATERAL_FHP_OFFSET_THRESH)
                 active_violations[PostureState.FORWARD_HEAD] = severity
                 reasons.append(
-                    f"[LATERAL] Ear offset {ear_offset:.3f} from shoulder (FHP threshold: {LATERAL_FHP_OFFSET_THRESH})"
+                    f"[LATERAL] Ear offset {ear_offset_mag:.3f} forward of shoulder (FHP threshold: {LATERAL_FHP_OFFSET_THRESH})"
                 )
 
-            ratio_drop_pct = nose_angle / 90.0  # Normalize for assessment output
-            z_dev = ear_offset
+            ratio_drop_pct = (nose_angle_mag - 40.0) / 50.0  # Normalized deviation scale
+            z_dev = ear_offset_mag
 
         else:
             # === FRONTAL / OBLIQUE MODE ===
