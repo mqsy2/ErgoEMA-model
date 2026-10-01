@@ -178,7 +178,7 @@ def process_kaggle_dataset(
             if run_mediapipe and mediapipe_detector is not None:
                 frame = cv2.imread(img_path)
                 if frame is not None:
-                    pose_data, _ = mediapipe_detector.extract_landmarks(frame)
+                    pose_data, _ = mediapipe_detector.extract_landmarks(frame, with_mask=True)
                     if pose_data and pose_data.is_valid_upper_body:
                         mp_feat = mediapipe_extractor.extract(pose_data)
                         if mp_feat is not None:
@@ -191,6 +191,7 @@ def process_kaggle_dataset(
                             record["shoulder_width_norm"] = mp_feat.shoulder_width_norm
                             record["ear_shoulder_offset_x"] = mp_feat.ear_shoulder_offset_x
                             record["nose_shoulder_angle_deg"] = mp_feat.nose_shoulder_angle_deg
+                            record["craniovertebral_angle_deg"] = mp_feat.craniovertebral_angle_deg
                             record["detected_view_angle"] = mp_feat.detected_view_angle
                         else:
                             record.update(_empty_mediapipe_record())
@@ -271,6 +272,7 @@ def _empty_mediapipe_record() -> Dict:
         "shoulder_width_norm": np.nan,
         "ear_shoulder_offset_x": np.nan,
         "nose_shoulder_angle_deg": np.nan,
+        "craniovertebral_angle_deg": np.nan,
         "detected_view_angle": np.nan,
     }
 

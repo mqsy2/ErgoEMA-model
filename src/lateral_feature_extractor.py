@@ -65,12 +65,11 @@ class LateralFeatureExtractor:
     Slouching causes the cervical-thoracic angle to deviate (head/neck moves forward).
     """
 
-    # Thresholds for auto-labeling posture from spine angles
-    # Clinical basis (expert-validated):
-    #   - Normal thoracic kyphosis: 20°-40° curvature. Hyperkyphosis (pathologic): >40°.
-    #   - Forward Head Posture (FHP): Craniovertebral angle (CVA) < 50°.
-    SLOUCH_ANGLE_THRESHOLD_DEG: float = 140.0      # Below this = slouch (>40° curvature = hyperkyphosis)
-    FHP_FORWARD_OFFSET_THRESHOLD: float = 0.06     # Cervical forward of thoracic (aligned with CVA < 50° guidance)
+    # Thresholds for auto-labeling posture from the annotated keypoints.
+    # These are heuristics on the angle between keypoints and on a horizontal offset in image units.
+    # They are not the clinical measures (thoracic kyphosis > 40°, craniovertebral angle < 50°).
+    SLOUCH_ANGLE_THRESHOLD_DEG: float = 140.0      # Cervical-thoracic-lumbar angle below this = slouch
+    FHP_FORWARD_OFFSET_THRESHOLD: float = 0.06     # Cervical keypoint this far forward of thoracic = forward head
 
     def _angle_between_three_points(
         self,

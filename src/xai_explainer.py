@@ -23,6 +23,10 @@ class XAIExplainer:
     COLOR_TEXT_DIM = (180, 180, 180)  # Light Gray
     COLOR_ACCENT = (147, 112, 219)    # Purple Accent
 
+    def __init__(self, cva_fhp_thresh_deg: float = 50.0, cva_drop_thresh_deg: float = 5.0):
+        self.cva_fhp_thresh_deg = cva_fhp_thresh_deg    # Shown next to the lateral-view craniovertebral angle
+        self.cva_drop_thresh_deg = cva_drop_thresh_deg  # Shown next to the lateral-view change from the calibrated upright
+
     def generate_explanation(self, assessment: PostureAssessment) -> str:
         """Returns a concise, plain-English ergonomic explanation of the current posture state."""
         if assessment.state == PostureState.GOOD_POSTURE:
@@ -50,8 +54,9 @@ class XAIExplainer:
         h, w = frame.shape[:2]
         overlay = frame.copy()
 
-        # Top Diagnostic Card
-        card_w, card_h = min(480, w - 40), 160
+        # Top Diagnostic Card (the lateral view shows one more telemetry row)
+        lateral_rows = not is_calibrating and features is not None and features.is_lateral
+        card_w, card_h = min(480, w - 40), 182 if lateral_rows else 160
         card_x, card_y = 20, 20
         
         # Draw translucent background card
@@ -108,17 +113,29 @@ class XAIExplainer:
                     cv2.FONT_HERSHEY_SIMPLEX, 0.62, badge_color, 2, cv2.LINE_AA)
 
         if features.is_lateral:
-            # Lateral Mode Telemetry Row 1: Nose-Shoulder Angle (Slouch Metric)
-            nose_angle = abs(features.nose_shoulder_angle_deg)
-            slouch_str = f"Nose-Shoulder Angle: {nose_angle:.1f}° (Slouch threshold: 55.0°)"
-            cv2.putText(frame, slouch_str, (card_x + 15, card_y + 90),
+            # Lateral Mode Telemetry Row 1: Craniovertebral Angle against the clinical FHP criterion
+            cva = features.craniovertebral_angle_deg
+            if cva < self.cva_fhp_thresh_deg:
+                fhp_str = f"CVA (est.): {cva:.1f}° - clinical FHP (below {self.cva_fhp_thresh_deg:.0f}°)"
+            else:
+                fhp_str = f"CVA (est.): {cva:.1f}° - not FHP (criterion {self.cva_fhp_thresh_deg:.0f}°)"
+            cv2.putText(frame, fhp_str, (card_x + 15, card_y + 90),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.48, self.COLOR_TEXT, 1, cv2.LINE_AA)
 
-            # Lateral Mode Telemetry Row 2: Ear Offset (FHP Metric)
-            ear_offset = abs(features.ear_shoulder_offset_x)
-            fhp_str = f"Ear-Shoulder Offset: {ear_offset:.3f} (FHP threshold: 0.140)"
-            cv2.putText(frame, fhp_str, (card_x + 15, card_y + 112),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.48, self.COLOR_TEXT, 1, cv2.LINE_AA)
+            # Lateral Mode Telemetry Row 2: Change from the calibrated upright CVA, which drives the alert
+            base_cva = baseline.mean_craniovertebral_angle_deg
+            if base_cva is not None:
+                change_str = f"Change from your upright: {cva - base_cva:+.1f}° (alert below -{self.cva_drop_thresh_deg:.0f}°)"
+                change_color = self.COLOR_TEXT
+            else:
+                change_str = "Calibrate side-on (C) to track change from your upright"
+                change_color = self.COLOR_WARNING
+            cv2.putText(frame, change_str, (card_x + 15, card_y + 112),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.48, change_color, 1, cv2.LINE_AA)
+
+            # Lateral Mode Telemetry Row 3: Thoracic kyphosis is not measurable from video, so slouch is not assessed
+            cv2.putText(frame, "Thoracic kyphosis: not measurable in this view", (card_x + 15, card_y + 134),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.48, self.COLOR_TEXT_DIM, 1, cv2.LINE_AA)
         else:
             # Frontal Mode Telemetry Row 1: Head-to-Shoulder Ratio (Slouch Metric)
             ratio_cur = features.head_to_shoulder_ratio
@@ -140,7 +157,7 @@ class XAIExplainer:
         explanation = self.generate_explanation(assessment)
         if len(explanation) > 55:
             explanation = explanation[:52] + "..."
-        cv2.putText(frame, f"XAI: {explanation}", (card_x + 15, card_y + 140),
+        cv2.putText(frame, f"XAI: {explanation}", (card_x + 15, card_y + card_h - 20),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.42, self.COLOR_TEXT_DIM, 1, cv2.LINE_AA)
 
         # Draw Persistent Bottom Banner during Active Sustained Alert

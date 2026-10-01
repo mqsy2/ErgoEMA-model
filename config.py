@@ -31,7 +31,14 @@ class ErgoConfig:
     
     # Forward Head Jutting / Sagittal Z-displacement threshold (relative units)
     FORWARD_HEAD_Z_THRESH: float = 0.06
-    
+
+    # Lateral (90°) view: Forward Head Posture is a craniovertebral angle below this (clinical criterion, not tuned)
+    LATERAL_CVA_FHP_THRESH_DEG: float = 50.0
+
+    # Lateral (90°) view: alert when the CVA falls this far below the calibrated upright CVA, and the EMA factor used side-on
+    LATERAL_CVA_DROP_THRESH_DEG: float = 5.0
+    LATERAL_EMA_ALPHA: float = 0.25
+
     # MediaPipe Pose Settings (0.35 accommodates single-side profile occlusion in lateral view)
     POSE_MIN_DETECTION_CONFIDENCE: float = 0.35
     POSE_MIN_TRACKING_CONFIDENCE: float = 0.35
@@ -51,12 +58,21 @@ class ErgoConfig:
         """
         try:
             with open(path, "r", encoding="utf-8") as f:
-                params = json.load(f)["optimal_hyperparameters"]
+                data = json.load(f)
+            params = data["optimal_hyperparameters"]
             alpha = float(params["alpha"])
             slouch_thresh = float(params["slouch_thresh"])
-        except (OSError, ValueError, KeyError, TypeError):
+            # Files written before these were tuned leave the defaults in place
+            fhp_thresh = float(params.get("forward_head_z_thresh", self.FORWARD_HEAD_Z_THRESH))
+            lateral = data.get("lateral_hyperparameters") or {}
+            lateral_alpha = float(lateral.get("alpha", self.LATERAL_EMA_ALPHA))
+            lateral_drop = float(lateral.get("cva_drop_thresh_deg", self.LATERAL_CVA_DROP_THRESH_DEG))
+        except (OSError, ValueError, KeyError, TypeError, AttributeError):
             return False
 
         self.DEFAULT_EMA_ALPHA = alpha
         self.SLOUCH_RATIO_DROP_THRESH = slouch_thresh
+        self.FORWARD_HEAD_Z_THRESH = fhp_thresh
+        self.LATERAL_EMA_ALPHA = lateral_alpha
+        self.LATERAL_CVA_DROP_THRESH_DEG = lateral_drop
         return True

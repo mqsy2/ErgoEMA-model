@@ -25,6 +25,7 @@ class EMAFilter:
         self._smoothed_vector: Optional[np.ndarray] = None
         self._is_initialized: bool = False
         self._last_features: Optional[PostureFeatures] = None
+        self._last_input_lateral: bool = False
 
     def update(self, features: Union[PostureFeatures, np.ndarray]) -> PostureFeatures:
         """
@@ -35,12 +36,19 @@ class EMAFilter:
             x_t = features.to_array()
             shoulder_w = features.shoulder_width_norm
             ts = features.timestamp
+            is_lateral = features.is_lateral
         else:
             x_t = np.asarray(features, dtype=np.float64)
             shoulder_w = 1.0
             ts = None
+            is_lateral = False
 
-        if not self._is_initialized or self._smoothed_vector is None:
+        # Frontal and lateral frames measure different quantities, so the filter
+        # restarts on a view change instead of blending one into the other
+        view_changed = is_lateral != self._last_input_lateral
+        self._last_input_lateral = is_lateral
+
+        if not self._is_initialized or self._smoothed_vector is None or view_changed:
             self._smoothed_vector = x_t.copy()
             self._is_initialized = True
         else:
@@ -65,6 +73,7 @@ class EMAFilter:
         self._smoothed_vector = None
         self._is_initialized = False
         self._last_features = None
+        self._last_input_lateral = False
 
     @property
     def is_initialized(self) -> bool:

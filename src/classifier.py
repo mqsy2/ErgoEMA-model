@@ -15,6 +15,7 @@ class PostureState(Enum):
     GOOD_POSTURE = "Upright"
     SLOUCH = "Slouch"
     FORWARD_HEAD = "Forward Head Posture (FHP)"
+    HEAD_FORWARD_OF_UPRIGHT = "Head Forward of Your Upright"  # Lateral change alert while the CVA still meets the clinical criterion
     UNKNOWN = "Uncalibrated / Unknown"
 
 @dataclass
@@ -26,6 +27,8 @@ class PostureAssessment:
     h2s_ratio_deviation_pct: float = 0.0
     forward_head_z_deviation: float = 0.0
     sustained_duration_sec: float = 0.0
+    clinical_fhp: Optional[bool] = None           # Lateral view: CVA below the clinical FHP criterion
+    cva_drop_deg: Optional[float] = None          # Lateral view: degrees below the calibrated upright CVA
 
 class PostureClassifier:
     """Adaptive and Static threshold posture classifier for Upright, Slouch, and FHP."""
@@ -34,11 +37,15 @@ class PostureClassifier:
         self,
         slouch_ratio_drop_thresh: float = 0.12,      # 12% compression drop below baseline ratio
         forward_head_z_thresh: float = 0.06,         # Sagittal anterior depth shift deviation
-        sustained_window_sec: float = 1.0            # Time buffer needed to confirm persistent bad posture
+        sustained_window_sec: float = 1.0,           # Time buffer needed to confirm persistent bad posture
+        lateral_cva_fhp_thresh_deg: float = 50.0,    # Lateral view: craniovertebral angle below this = FHP
+        lateral_cva_drop_thresh_deg: Optional[float] = 5.0  # Lateral view: CVA this far below the calibrated upright = alert (None: clinical criterion only)
     ):
         self.slouch_ratio_drop_thresh = slouch_ratio_drop_thresh
         self.forward_head_z_thresh = forward_head_z_thresh
         self.sustained_window_sec = sustained_window_sec
+        self.lateral_cva_fhp_thresh_deg = lateral_cva_fhp_thresh_deg
+        self.lateral_cva_drop_thresh_deg = lateral_cva_drop_thresh_deg
 
         self._bad_posture_start_time: Optional[float] = None
         self._last_state: PostureState = PostureState.GOOD_POSTURE
@@ -53,49 +60,52 @@ class PostureClassifier:
         Evaluates smoothed features against personalized baseline profile.
         Automatically adapts evaluation strategy based on detected view angle:
         - Frontal/Oblique: Uses H2S compression ratio and Z-depth
-        - Lateral (90°): Uses ear-to-shoulder offset and nose-shoulder angle
+        - Lateral (90°): Uses the craniovertebral angle (CVA), relative to the calibrated upright CVA when available
         """
         reasons: List[str] = []
         state = PostureState.GOOD_POSTURE
         active_violations = {}
+        clinical_fhp = None
+        cva_drop = None
 
         if smoothed_feat.is_lateral:
             # === LATERAL MODE (90° Side Profile) ===
-            # Clinical basis (expert-validated):
-            #   - Normal thoracic kyphosis: 20°-40°. Pathologic slouching (hyperkyphosis): >40°.
-            #   - In lateral camera projection, nose-to-shoulder angle exceeds ~55° during slouching.
-            #   - Forward Head Posture (FHP): CVA < 50° ≈ prominent anterior ear translation (>0.14 normalized units).
-            #
-            # Use absolute values to support both left-facing and right-facing camera orientations:
-            nose_angle_mag = abs(smoothed_feat.nose_shoulder_angle_deg)
-            LATERAL_SLOUCH_ANGLE_THRESH = 55.0  # degrees (clinical slouch / hyperkyphosis)
+            # Clinical criteria (expert review):
+            #   - Forward Head Posture (FHP): craniovertebral angle (CVA) below ~50°.
+            #   - Slouching (hyperkyphosis): thoracic kyphosis above 40° (normal: 20°-40°).
+            # The CVA is estimated per frame (see sagittal_geometry). Thoracic kyphosis cannot be
+            # measured from pose landmarks or the body silhouette, so slouch is not assessed in this view.
+            # When calibration was done side-on, the alert tracks the drop from the user's own upright CVA,
+            # because some people's natural upright posture already measures near the clinical criterion.
+            # The state is named FHP only when the CVA is also below that criterion.
+            cva = smoothed_feat.craniovertebral_angle_deg
+            clinical_fhp = cva < self.lateral_cva_fhp_thresh_deg
+            base_cva = baseline.mean_craniovertebral_angle_deg
 
-            if nose_angle_mag > LATERAL_SLOUCH_ANGLE_THRESH:
-                severity = nose_angle_mag / max(1.0, LATERAL_SLOUCH_ANGLE_THRESH)
-                active_violations[PostureState.SLOUCH] = severity
+            if base_cva is not None and self.lateral_cva_drop_thresh_deg is not None:
+                cva_drop = base_cva - cva
+                if cva_drop > self.lateral_cva_drop_thresh_deg:
+                    lateral_state = PostureState.FORWARD_HEAD if clinical_fhp else PostureState.HEAD_FORWARD_OF_UPRIGHT
+                    active_violations[lateral_state] = cva_drop / max(1e-4, self.lateral_cva_drop_thresh_deg)
+                    reasons.append(
+                        f"[LATERAL] Head {cva_drop:.1f}° further forward than your upright (CVA {cva:.1f}° vs {base_cva:.1f}°)"
+                    )
+                    if clinical_fhp:
+                        reasons.append(f"CVA below the {self.lateral_cva_fhp_thresh_deg:.0f}° FHP criterion")
+            elif clinical_fhp:
+                active_violations[PostureState.FORWARD_HEAD] = self.lateral_cva_fhp_thresh_deg / max(1.0, cva)
                 reasons.append(
-                    f"[LATERAL] Head forward {nose_angle_mag:.1f}° from vertical (threshold: {LATERAL_SLOUCH_ANGLE_THRESH}°)"
+                    f"[LATERAL] Craniovertebral angle {cva:.1f}° below the {self.lateral_cva_fhp_thresh_deg:.0f}° FHP criterion"
                 )
 
-            # Ear-shoulder horizontal offset as FHP metric (magnitude for orientation invariance)
-            ear_offset_mag = abs(smoothed_feat.ear_shoulder_offset_x)
-            LATERAL_FHP_OFFSET_THRESH = 0.14  # normalized units (clinical FHP threshold)
-
-            if ear_offset_mag > LATERAL_FHP_OFFSET_THRESH:
-                severity = ear_offset_mag / max(1e-4, LATERAL_FHP_OFFSET_THRESH)
-                active_violations[PostureState.FORWARD_HEAD] = severity
-                reasons.append(
-                    f"[LATERAL] Ear offset {ear_offset_mag:.3f} forward of shoulder (FHP threshold: {LATERAL_FHP_OFFSET_THRESH})"
-                )
-
-            ratio_drop_pct = (nose_angle_mag - 40.0) / 50.0  # Normalized deviation scale
-            z_dev = ear_offset_mag
+            ratio_drop_pct = 0.0
+            z_dev = self.lateral_cva_fhp_thresh_deg - cva  # Degrees below the FHP criterion (negative = within normal)
 
         else:
             # === FRONTAL / OBLIQUE MODE ===
             # 1. Head-to-Shoulder Vertical Compression Ratio Drop (Slouch / Hunching)
             ratio_drop_pct = (baseline.mean_h2s_ratio - smoothed_feat.head_to_shoulder_ratio) / max(1e-4, baseline.mean_h2s_ratio)
-            
+
             # 2. Sagittal Forward-Head Z-depth Deviation (Anterior Translation)
             z_dev = baseline.mean_forward_head_z - smoothed_feat.forward_head_z
 
@@ -132,7 +142,9 @@ class PostureClassifier:
             reasons=reasons,
             h2s_ratio_deviation_pct=ratio_drop_pct * 100.0,
             forward_head_z_deviation=z_dev,
-            sustained_duration_sec=sustained_duration
+            sustained_duration_sec=sustained_duration,
+            clinical_fhp=clinical_fhp,
+            cva_drop_deg=cva_drop
         )
 
     def evaluate_static_baseline(

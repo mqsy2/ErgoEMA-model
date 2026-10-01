@@ -11,6 +11,7 @@ from typing import Optional, Dict, Tuple, Any, List
 import numpy as np
 import cv2
 import mediapipe as mp
+from .sagittal_geometry import ANALYSIS_HEIGHT, LateralGeometry, analyze_lateral
 
 @dataclass
 class Point3D:
@@ -36,6 +37,9 @@ class PoseLandmarks:
     left_hip: Optional[Point3D] = None
     right_hip: Optional[Point3D] = None
     is_valid_upper_body: bool = False
+    image_width: int = 0                              # Source frame size in pixels (0 if unknown)
+    image_height: int = 0
+    segmentation_mask: Optional[np.ndarray] = None    # Person probability mask, resized to ANALYSIS_HEIGHT rows
 
 # Standard upper-body connections for skeletal drawing (pairs of landmark indices)
 UPPER_BODY_CONNECTIONS = [
@@ -69,62 +73,103 @@ class PoseDetector:
         enable_segmentation: bool = False,
     ):
         self.use_tasks_api = not hasattr(mp, 'solutions')
-        
+        self._min_detection_confidence = min_detection_confidence
+        self._min_tracking_confidence = min_tracking_confidence
+        self._model_complexity = model_complexity
+        self._always_segment = enable_segmentation
+
         if self.use_tasks_api:
             # Modern MediaPipe Tasks API (MediaPipe 0.10.20+)
-            from mediapipe.tasks.python import vision
-            from mediapipe.tasks.python import BaseOptions
-
             model_dir = os.path.join(os.path.dirname(__file__), "..", "models")
             os.makedirs(model_dir, exist_ok=True)
-            model_path = os.path.join(model_dir, "pose_landmarker_full.task")
+            self._model_path = os.path.join(model_dir, "pose_landmarker_full.task")
 
-            if not os.path.exists(model_path):
+            if not os.path.exists(self._model_path):
                 print("[INFO] Downloading MediaPipe PoseLandmarker model bundle...")
                 url = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/latest/pose_landmarker_full.task"
-                urllib.request.urlretrieve(url, model_path)
-                print(f"[INFO] Model saved to: {model_path}")
+                urllib.request.urlretrieve(url, self._model_path)
+                print(f"[INFO] Model saved to: {self._model_path}")
 
-            options = vision.PoseLandmarkerOptions(
-                base_options=BaseOptions(model_asset_path=model_path),
-                running_mode=vision.RunningMode.IMAGE,
-                min_pose_detection_confidence=min_detection_confidence,
-                min_pose_presence_confidence=min_detection_confidence,
-                min_tracking_confidence=min_tracking_confidence,
-                output_segmentation_masks=False
-            )
-            self.landmarker = vision.PoseLandmarker.create_from_options(options)
+            self.landmarker = self._create_landmarker(output_masks=False)
             self.pose = None
         else:
             # Classic MediaPipe Solutions API
             self.mp_pose = mp.solutions.pose
-            self.pose = self.mp_pose.Pose(
-                min_detection_confidence=min_detection_confidence,
-                min_tracking_confidence=min_tracking_confidence,
-                model_complexity=model_complexity,
-                enable_segmentation=enable_segmentation,
-                static_image_mode=False
-            )
+            self.pose = self._create_classic_pose(enable_segmentation=False)
             self.landmarker = None
 
-        # Temporal stability and smoothing state for lateral spine rendering
-        self._prev_vis_side = 'LEFT'
-        self._prev_back_sign = -1.0
-        self._prev_spine_pts = None
+        # Segmentation costs extra inference time, so the mask-producing model is only loaded when first needed
+        self._mask_landmarker = None
+        self._mask_pose = None
 
-    def extract_landmarks(self, frame_bgr: np.ndarray) -> Tuple[Optional[PoseLandmarks], Any]:
-        """Processes a BGR video frame and extracts 3D upper-body landmarks."""
+        # Temporal smoothing state for lateral overlay rendering
+        self._prev_lateral_pts: Dict[str, np.ndarray] = {}
+
+    def _create_landmarker(self, output_masks: bool):
+        from mediapipe.tasks.python import vision
+        from mediapipe.tasks.python import BaseOptions
+
+        options = vision.PoseLandmarkerOptions(
+            base_options=BaseOptions(model_asset_path=self._model_path),
+            running_mode=vision.RunningMode.IMAGE,
+            min_pose_detection_confidence=self._min_detection_confidence,
+            min_pose_presence_confidence=self._min_detection_confidence,
+            min_tracking_confidence=self._min_tracking_confidence,
+            output_segmentation_masks=output_masks
+        )
+        return vision.PoseLandmarker.create_from_options(options)
+
+    def _create_classic_pose(self, enable_segmentation: bool):
+        return self.mp_pose.Pose(
+            min_detection_confidence=self._min_detection_confidence,
+            min_tracking_confidence=self._min_tracking_confidence,
+            model_complexity=self._model_complexity,
+            enable_segmentation=enable_segmentation,
+            static_image_mode=False
+        )
+
+    @staticmethod
+    def _shrink_mask(mask: np.ndarray) -> np.ndarray:
+        """Resizes a full-frame person mask to ANALYSIS_HEIGHT rows, keeping the frame's aspect ratio."""
+        h, w = mask.shape[:2]
+        return cv2.resize(mask, (max(1, int(round(ANALYSIS_HEIGHT * w / h))), ANALYSIS_HEIGHT), interpolation=cv2.INTER_AREA)
+
+    def extract_landmarks(self, frame_bgr: np.ndarray, with_mask: bool = False) -> Tuple[Optional[PoseLandmarks], Any]:
+        """
+        Processes a BGR video frame and extracts 3D upper-body landmarks.
+        with_mask also returns the person segmentation mask, which side-profile analysis uses to locate C7.
+        """
+        h, w = frame_bgr.shape[:2]
+        with_mask = with_mask or self._always_segment
         frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+        mask = None
 
         if self.use_tasks_api:
+            landmarker = self.landmarker
+            x_scale = 1.0
+            if with_mask:
+                if self._mask_landmarker is None:
+                    self._mask_landmarker = self._create_landmarker(output_masks=True)
+                landmarker = self._mask_landmarker
+                # MediaPipe can only expose the float mask as an array when its rows are 16-byte aligned
+                pad = (-w) % 4
+                if pad:
+                    frame_rgb = cv2.copyMakeBorder(frame_rgb, 0, 0, 0, pad, cv2.BORDER_REPLICATE)
+                    x_scale = (w + pad) / w
+
             mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame_rgb)
-            detection_result = self.landmarker.detect(mp_image)
+            detection_result = landmarker.detect(mp_image)
 
             if not detection_result.pose_landmarks or len(detection_result.pose_landmarks) == 0:
                 return None, detection_result
 
             landmarks_list = detection_result.pose_landmarks[0]
-            
+            if x_scale != 1.0:
+                for p in landmarks_list:
+                    p.x *= x_scale
+            if with_mask and detection_result.segmentation_masks:
+                mask = self._shrink_mask(detection_result.segmentation_masks[0].numpy_view()[:, :w])
+
             def to_point(idx: int) -> Point3D:
                 p = landmarks_list[idx]
                 vis = getattr(p, 'visibility', 1.0)
@@ -134,12 +179,21 @@ class PoseDetector:
 
             raw_ref = landmarks_list
         else:
+            pose_model = self.pose
+            if with_mask:
+                if self._mask_pose is None:
+                    self._mask_pose = self._create_classic_pose(enable_segmentation=True)
+                pose_model = self._mask_pose
+
             frame_rgb.flags.writeable = False
-            results = self.pose.process(frame_rgb)
+            results = pose_model.process(frame_rgb)
             frame_rgb.flags.writeable = True
 
             if not results.pose_landmarks:
                 return None, results
+
+            if with_mask and getattr(results, "segmentation_mask", None) is not None:
+                mask = self._shrink_mask(results.segmentation_mask)
 
             lm = results.pose_landmarks.landmark
             def to_point(idx: int) -> Point3D:
@@ -178,15 +232,91 @@ class PoseDetector:
             right_wrist=to_point(16),
             left_hip=to_point(23),
             right_hip=to_point(24),
-            is_valid_upper_body=is_valid
+            is_valid_upper_body=is_valid,
+            image_width=w,
+            image_height=h,
+            segmentation_mask=mask
         )
 
         return pose_data, raw_ref
 
-    def draw_skeleton(self, frame_bgr: np.ndarray, results: Any, color: Tuple[int, int, int] = (0, 255, 0), is_lateral: bool = False) -> np.ndarray:
+    @staticmethod
+    def _lateral_geometry_from_landmarks(landmarks: Any, w: int, h: int) -> Optional[LateralGeometry]:
+        """Side-profile geometry from raw landmarks alone (no silhouette)."""
+        def to_point(idx: int) -> Point3D:
+            p = landmarks[idx]
+            vis = getattr(p, 'visibility', 1.0)
+            return Point3D(x=float(p.x), y=float(p.y), z=float(getattr(p, 'z', 0.0) or 0.0), visibility=float(1.0 if vis is None else vis))
+
+        pose = PoseLandmarks(
+            raw_landmarks=landmarks,
+            nose=to_point(0),
+            left_eye=to_point(2),
+            right_eye=to_point(5),
+            left_ear=to_point(7),
+            right_ear=to_point(8),
+            left_shoulder=to_point(11),
+            right_shoulder=to_point(12),
+            left_hip=to_point(23),
+            right_hip=to_point(24),
+            image_width=w,
+            image_height=h
+        )
+        # In MediaPipe 3D coordinates, the camera-facing side has the smaller (more negative) Z
+        return analyze_lateral(pose, near_left=pose.left_shoulder.z < pose.right_shoulder.z)
+
+    def _draw_lateral_overlay(self, frame_bgr: np.ndarray, geom: LateralGeometry):
+        """Draws the measured back contour, spine-level markers and the craniovertebral angle construction."""
+        h, w = frame_bgr.shape[:2]
+        scale = np.array([w, h], dtype=np.float32)
+
+        # Temporal EMA smoothing of marker positions across video frames to prevent jitter
+        markers = {"EAR": geom.ear, "C7": geom.c7, **geom.spine_levels}
+        self._prev_lateral_pts = {name: pt for name, pt in self._prev_lateral_pts.items() if name in markers}
+        pts = {}
+        for name, point in markers.items():
+            raw = np.array(point, dtype=np.float32) * scale
+            prev = self._prev_lateral_pts.get(name)
+            self._prev_lateral_pts[name] = raw if prev is None else 0.35 * raw + 0.65 * prev
+            pts[name] = (int(self._prev_lateral_pts[name][0]), int(self._prev_lateral_pts[name][1]))
+
+        def put_label(text: str, anchor: Tuple[int, int]):
+            # Offset text toward body interior so it stays visible
+            text_w = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.45, 1)[0][0]
+            org = (anchor[0] + (15 if geom.facing > 0 else -15 - text_w), anchor[1] + 5)
+            cv2.putText(frame_bgr, text, org, cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 0), 2, cv2.LINE_AA)
+            cv2.putText(frame_bgr, text, org, cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1, cv2.LINE_AA)
+
+        # Back contour as measured on the body silhouette (yellow)
+        if len(geom.back_contour) >= 2:
+            contour = (np.array(geom.back_contour, dtype=np.float32) * scale).astype(np.int32)
+            cv2.polylines(frame_bgr, [contour], False, (0, 255, 255), 2, cv2.LINE_AA)
+
+        # Craniovertebral angle: horizontal through C7 vs. the line from C7 to the ear
+        c7, ear = pts["C7"], pts["EAR"]
+        reach = int(np.hypot(ear[0] - c7[0], ear[1] - c7[1]))
+        cv2.line(frame_bgr, c7, (c7[0] + int(geom.facing) * reach, c7[1]), (255, 255, 255), 1, cv2.LINE_AA)
+        cv2.line(frame_bgr, c7, ear, (255, 255, 255), 2, cv2.LINE_AA)
+        cva = geom.craniovertebral_angle_deg
+        arc = (-cva, 0.0) if geom.facing > 0 else (180.0, 180.0 + cva)
+        cv2.ellipse(frame_bgr, c7, (reach // 3, reach // 3), 0, arc[0], arc[1], (255, 255, 255), 1, cv2.LINE_AA)
+        cv2.circle(frame_bgr, ear, 5, (255, 255, 255), -1, cv2.LINE_AA)
+        cv2.circle(frame_bgr, ear, 6, (0, 0, 0), 1, cv2.LINE_AA)
+
+        # Spine-level markers on the contour (only the levels that are in view)
+        colors = {"C7": (0, 0, 255), "THORACIC": (0, 255, 0), "LUMBAR": (255, 0, 0), "SACRAL": (0, 255, 255)}  # Red, Green, Blue, Yellow
+        for name, color in colors.items():
+            if name in pts:
+                cv2.circle(frame_bgr, pts[name], 6, color, -1, cv2.LINE_AA)
+                cv2.circle(frame_bgr, pts[name], 7, (0, 0, 0), 1, cv2.LINE_AA)
+                put_label(name, pts[name])
+
+    def draw_skeleton(self, frame_bgr: np.ndarray, results: Any, color: Tuple[int, int, int] = (0, 255, 0), is_lateral: bool = False, lateral_geometry: Optional[LateralGeometry] = None) -> np.ndarray:
         """
         Overlays the detected 3D skeleton onto the 2D video frame.
-        If is_lateral is True, draws the 4 synthesized Kaggle spine keypoints.
+        If is_lateral is True, draws the side-profile measurement overlay instead: the back contour,
+        the estimated C7 and the craniovertebral angle. Pass the frame's lateral_geometry so the overlay
+        matches the measured values; without it, C7 is placed from landmark proportions alone.
         """
         h, w = frame_bgr.shape[:2]
         landmarks = None
@@ -205,119 +335,15 @@ class PoseDetector:
             return frame_bgr
 
         if is_lateral:
-            # === LATERAL MODE: Anatomical Spine Keypoints (Cervical, Thoracic, Lumbar, Sacral) ===
-            # Identify the camera-facing side (left or right) with hysteresis
-            nose = landmarks[0]
-            l_ear, r_ear = landmarks[7], landmarks[8]
-            l_sh, r_sh = landmarks[11], landmarks[12]
-            l_hip, r_hip = landmarks[23], landmarks[24]
-            
-            # In MediaPipe 3D coordinates, camera-facing side has smaller (more negative) Z
-            if hasattr(l_sh, 'z') and hasattr(r_sh, 'z') and abs(l_sh.z - r_sh.z) > 0.12:
-                vis_side = 'LEFT' if l_sh.z < r_sh.z else 'RIGHT'
-                self._prev_vis_side = vis_side
-            else:
-                l_vis = (getattr(l_ear, 'visibility', 0.0) or 0.0) + (getattr(l_sh, 'visibility', 0.0) or 0.0)
-                r_vis = (getattr(r_ear, 'visibility', 0.0) or 0.0) + (getattr(r_sh, 'visibility', 0.0) or 0.0)
-                if abs(l_vis - r_vis) > 0.2:
-                    vis_side = 'LEFT' if l_vis >= r_vis else 'RIGHT'
-                    self._prev_vis_side = vis_side
-                else:
-                    vis_side = self._prev_vis_side
-            
-            vis_ear = l_ear if vis_side == 'LEFT' else r_ear
-            vis_sh = l_sh if vis_side == 'LEFT' else r_sh
-            vis_hip = l_hip if vis_side == 'LEFT' else r_hip
-
-            # Determine facing direction stably:
-            # In lateral profile, nose extends forward of ear and shoulder in facing direction.
-            # Blend nose-to-ear and nose-to-shoulder with deadband hysteresis:
-            ear_dx = getattr(nose, 'x', vis_ear.x) - vis_ear.x
-            sh_dx = getattr(nose, 'x', vis_sh.x) - vis_sh.x
-            facing_score = 0.6 * ear_dx + 0.4 * sh_dx
-
-            if abs(facing_score) > 0.02:
-                # facing_score > 0: nose is to the right (+X) -> user faces RIGHT. Back is to the LEFT (-X, back_sign = -1.0).
-                # facing_score < 0: nose is to the left (-X)  -> user faces LEFT. Back is to the RIGHT (+X, back_sign = +1.0).
-                self._prev_back_sign = -1.0 if facing_score > 0 else 1.0
-            back_sign = self._prev_back_sign
-
-            # Anatomical scale reference in profile view
-            head_depth = max(abs(ear_dx), 0.08)
-
-            # Torso depth offset from shoulder to dorsal back contour
-            sh_offset = np.clip(0.65 * head_depth, 0.07, 0.11)
-
-            # 1. THORACIC SPINE (T1-T12):
-            # Anchor to shoulder X shifted back toward dorsal contour
-            sh_y = min(vis_sh.y, vis_ear.y + 0.28)
-            t_norm_x = vis_sh.x + back_sign * sh_offset
-            t_norm_y = sh_y + 0.03
-
-            # 2. CERVICAL SPINE (C7):
-            # Base of the neck, directly above T1, smoothly meeting posterior nape
-            nape_x = vis_ear.x + back_sign * (0.50 * head_depth)
-            c_norm_x = t_norm_x + 0.35 * (nape_x - t_norm_x)
-            c_norm_y = max(0.02, t_norm_y - 0.12)
-
-            # 3. SACRAL SPINE (S1-S5):
-            # Lower pelvic anchor resting against chair back
-            hip_vis = getattr(vis_hip, 'visibility', 0.0) or 0.0
-            if hip_vis > 0.4 and vis_hip.y < 0.95:
-                s_norm_x = vis_hip.x + back_sign * 0.04
-                s_norm_y = min(0.95, vis_hip.y)
-            else:
-                # Extrapolate downward along dorsal torso contour
-                s_norm_x = t_norm_x + back_sign * 0.06
-                s_norm_y = min(0.95, t_norm_y + 0.30)
-
-            # 4. LUMBAR SPINE (L1-L5):
-            # Mid-point between Thoracic and Sacral
-            l_norm_x = (t_norm_x + s_norm_x) / 2.0
-            l_norm_y = (t_norm_y + s_norm_y) / 2.0
-
-            # Clamp coordinates to frame boundaries
-            c_x = int(np.clip(c_norm_x, 0.02, 0.98) * w)
-            c_y = int(np.clip(c_norm_y, 0.02, 0.98) * h)
-            t_x = int(np.clip(t_norm_x, 0.02, 0.98) * w)
-            t_y = int(np.clip(t_norm_y, 0.02, 0.98) * h)
-            l_x = int(np.clip(l_norm_x, 0.02, 0.98) * w)
-            l_y = int(np.clip(l_norm_y, 0.02, 0.98) * h)
-            s_x = int(np.clip(s_norm_x, 0.02, 0.98) * w)
-            s_y = int(np.clip(s_norm_y, 0.02, 0.98) * h)
-
-            raw_pts = np.array([[c_x, c_y], [t_x, t_y], [l_x, l_y], [s_x, s_y]], dtype=np.float32)
-
-            # Temporal EMA Smoothing across video frames to prevent jitter and spinning
-            if self._prev_spine_pts is None:
-                self._prev_spine_pts = raw_pts
-            else:
-                self._prev_spine_pts = 0.35 * raw_pts + 0.65 * self._prev_spine_pts
-
-            spine_pts = [(int(p[0]), int(p[1])) for p in self._prev_spine_pts]
-            spine_labels = ["CERVICAL SPINE", "THORACIC", "LUMBAR", "SACRAL"]
-
-            # Draw connecting spine line (yellow)
-            for i in range(3):
-                cv2.line(frame_bgr, spine_pts[i], spine_pts[i+1], (0, 255, 255), 2, cv2.LINE_AA)
-
-            # Draw the 4 keypoints with labels
-            colors = [(0, 0, 255), (0, 255, 0), (255, 0, 0), (0, 255, 255)]  # Red, Green, Blue, Yellow
-            for i in range(4):
-                pt = spine_pts[i]
-                cv2.circle(frame_bgr, pt, 6, colors[i], -1, cv2.LINE_AA)
-                cv2.circle(frame_bgr, pt, 7, (0, 0, 0), 1, cv2.LINE_AA)
-                # Offset text toward body interior so it stays visible
-                text_offset_x = 15 if back_sign < 0 else -180
-                cv2.putText(frame_bgr, spine_labels[i], (pt[0] + text_offset_x, pt[1] + 5), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 0), 2, cv2.LINE_AA)
-                cv2.putText(frame_bgr, spine_labels[i], (pt[0] + text_offset_x, pt[1] + 5), 
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.45, (255, 255, 255), 1, cv2.LINE_AA)
-
+            # === LATERAL MODE: Back Contour, C7 and Craniovertebral Angle ===
+            if lateral_geometry is None:
+                lateral_geometry = self._lateral_geometry_from_landmarks(landmarks, w, h)
+            if lateral_geometry is not None:
+                self._draw_lateral_overlay(frame_bgr, lateral_geometry)
             return frame_bgr
 
-        # Reset spine smoothing when returning to frontal view
-        self._prev_spine_pts = None
+        # Reset overlay smoothing when returning to frontal view
+        self._prev_lateral_pts = {}
 
         # === FRONTAL MODE: Standard Upper Body Skeleton ===
         # Draw bone connections
@@ -346,7 +372,6 @@ class PoseDetector:
 
     def close(self):
         """Releases MediaPipe resources."""
-        if self.pose:
-            self.pose.close()
-        if self.landmarker:
-            self.landmarker.close()
+        for model in (self.pose, self.landmarker, self._mask_pose, self._mask_landmarker):
+            if model:
+                model.close()

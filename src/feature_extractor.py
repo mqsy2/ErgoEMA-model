@@ -3,10 +3,11 @@ Feature Extractor for Front-Facing Posture Biomechanics.
 Calculates scale-invariant geometric ratios, angular alignments, and 3D depth indicators.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional, List, Dict
 import numpy as np
 from .pose_detector import PoseLandmarks, Point3D
+from .sagittal_geometry import LateralGeometry, analyze_lateral
 
 @dataclass
 class PostureFeatures:
@@ -19,8 +20,10 @@ class PostureFeatures:
     neck_lateral_flexion_deg: float    # Angle between mid-shoulder-to-nose vector and true vertical
     timestamp: Optional[float] = None  # Video timestamp (if available)
     detected_view_angle: str = "frontal"  # Auto-detected: "frontal", "oblique", or "lateral"
-    ear_shoulder_offset_x: float = 0.0    # Horizontal offset of ear relative to shoulder (lateral FHP metric)
-    nose_shoulder_angle_deg: float = 0.0  # Angle of nose-to-shoulder vector vs vertical (lateral slouch metric)
+    ear_shoulder_offset_x: float = 0.0    # Horizontal offset of ear relative to shoulder, in frame widths (lateral view)
+    nose_shoulder_angle_deg: float = 0.0  # Angle of nose-to-shoulder vector vs vertical (lateral view)
+    craniovertebral_angle_deg: float = 0.0  # Estimated CVA: horizontal through C7 vs. the C7-to-ear line (lateral FHP metric)
+    lateral_geometry: Optional[LateralGeometry] = field(default=None, repr=False, compare=False)  # Points behind the CVA, for the overlay
 
     @property
     def is_lateral(self) -> bool:
@@ -43,7 +46,8 @@ class PostureFeatures:
             self.neck_lateral_flexion_deg,
             self.ear_shoulder_offset_x,
             self.nose_shoulder_angle_deg,
-            view_angle_code
+            view_angle_code,
+            self.craniovertebral_angle_deg
         ], dtype=np.float64)
 
     @classmethod
@@ -65,6 +69,7 @@ class PostureFeatures:
             neck_lateral_flexion_deg=float(arr[4]) if len(arr) > 4 else 0.0,
             ear_shoulder_offset_x=float(arr[5]) if len(arr) > 5 else 0.0,
             nose_shoulder_angle_deg=float(arr[6]) if len(arr) > 6 else 0.0,
+            craniovertebral_angle_deg=float(arr[8]) if len(arr) > 8 else 0.0,
             detected_view_angle=view_angle,
             shoulder_width_norm=shoulder_width
         )
@@ -130,8 +135,7 @@ class FeatureExtractor:
 
         if shoulder_width < 1e-4:
             # Shoulders completely overlapped — use the more visible one
-            vis_shoulder = ls if ls.visibility > rs.visibility else rs
-            return self._extract_lateral(pose, vis_shoulder.x, vis_shoulder.y, vis_shoulder.z, shoulder_width, timestamp)
+            return self._extract_lateral(pose, ls.visibility > rs.visibility, shoulder_width, timestamp)
 
         # Robust 3D Biomechanical View Angle Detection:
         # 1. In a 90° lateral profile view:
@@ -155,12 +159,10 @@ class FeatureExtractor:
             # Use the camera-facing shoulder directly (via 3D Z-depth or visibility)
             # to avoid pulling the reference forward with the hallucinated occluded shoulder.
             if abs(ls.z - rs.z) > 0.08:
-                vis_sh = ls if ls.z < rs.z else rs
-            elif ls.visibility >= rs.visibility:
-                vis_sh = ls
+                near_left = ls.z < rs.z
             else:
-                vis_sh = rs
-            return self._extract_lateral(pose, vis_sh.x, vis_sh.y, vis_sh.z, shoulder_width, timestamp)
+                near_left = ls.visibility >= rs.visibility
+            return self._extract_lateral(pose, near_left, shoulder_width, timestamp)
 
         # 3. Normalized Head-to-Shoulder Vertical Compression Ratio (R_H2S)
         # In image coordinates, y=0 is top, y=1 is bottom.
@@ -212,62 +214,52 @@ class FeatureExtractor:
     def _extract_lateral(
         self,
         pose: PoseLandmarks,
-        shoulder_ref_x: float,
-        shoulder_ref_y: float,
-        shoulder_ref_z: float,
+        near_left: bool,
         shoulder_width: float,
         timestamp: Optional[float] = None
     ) -> Optional[PostureFeatures]:
         """
         Computes lateral (90° side-profile) posture metrics.
 
-        The shoulder_ref_x/y/z should be the VISIBLE (camera-facing) shoulder's
-        coordinates, NOT the midpoint of both shoulders. In a 90° view, the
-        occluded back shoulder is unreliably hallucinated by MediaPipe.
+        near_left selects the VISIBLE (camera-facing) side. In a 90° view, the
+        occluded back shoulder is unreliably hallucinated by MediaPipe, so the
+        midpoint of both shoulders is not used.
 
-        Uses ear-to-shoulder horizontal displacement and nose-to-shoulder angle
-        instead of the biacromial R_H2S ratio which breaks at 90°.
+        The primary metric is the craniovertebral angle (CVA), the clinical measure of
+        forward head posture. The biacromial R_H2S ratio breaks at 90° and is not used.
         """
+        geometry = analyze_lateral(pose, near_left)
+        if geometry is None:
+            return None
+
         nose = pose.nose
-        le = pose.left_ear
-        re = pose.right_ear
+        shoulder = pose.left_shoulder if near_left else pose.right_shoulder
+        ear_x = geometry.ear[0]
+        facing_sign = geometry.facing  # 1.0 if facing right (+X), -1.0 if facing left (-X)
 
-        # Use whichever ear is more visible (in side view, only one ear faces the camera)
-        visible_ear = None
-        if le.visibility > re.visibility and le.visibility > 0.3:
-            visible_ear = le
-        elif re.visibility > 0.3:
-            visible_ear = re
+        # Angles are measured in pixel space: normalized x and y are not on the same scale unless the frame is square
+        aspect = pose.image_width / pose.image_height if pose.image_width and pose.image_height else 1.0
 
-        # Determine facing direction: 1.0 if facing right (+X), -1.0 if facing left (-X)
-        # Nose is horizontally forward of the shoulder in the direction the user faces
-        facing_sign = 1.0 if nose.x >= shoulder_ref_x else -1.0
-
-        # 1. Ear-to-Shoulder Horizontal Offset (primary FHP metric for lateral view)
+        # 1. Ear-to-Shoulder Horizontal Offset
         # Normalized by facing_sign so forward head displacement is ALWAYS positive
-        ear_shoulder_offset_x = 0.0
-        if visible_ear is not None:
-            ear_shoulder_offset_x = float((visible_ear.x - shoulder_ref_x) * facing_sign)
-        else:
-            # Fallback: use nose horizontal offset
-            ear_shoulder_offset_x = float((nose.x - shoulder_ref_x) * facing_sign)
+        ear_shoulder_offset_x = float((ear_x - shoulder.x) * facing_sign)
 
-        # 2. Nose-to-Shoulder Angle vs Vertical (primary slouch metric for lateral view)
+        # 2. Nose-to-Shoulder Angle vs Vertical
         # A straight vertical line from shoulder to head = 0°. Forward lean increases this angle.
         # Normalized by facing_sign so forward lean angle is always positive
-        vec_x = (nose.x - shoulder_ref_x) * facing_sign
-        vec_y = nose.y - shoulder_ref_y  # negative when head is above shoulder
+        vec_x = (nose.x - shoulder.x) * facing_sign * aspect
+        vec_y = nose.y - shoulder.y  # negative when head is above shoulder
         nose_shoulder_angle = float(np.degrees(np.arctan2(vec_x, -vec_y)))
 
         # 3. Vertical distance normalized by a body-proportional reference
         # Use nose-to-shoulder vertical distance as a self-referencing scale
-        delta_y = shoulder_ref_y - nose.y
+        delta_y = shoulder.y - nose.y
         vertical_dist = max(abs(delta_y), 1e-4)
         # Create a pseudo H2S ratio using the vertical distance and horizontal offset
         lateral_h2s = float(delta_y / vertical_dist)  # Will be ~1.0 for upright, <1.0 for slouch
 
         # 4. Forward Head Z-depth (still available from MediaPipe 3D estimation)
-        forward_head_z = float(nose.z - shoulder_ref_z)
+        forward_head_z = float(nose.z - shoulder.z)
 
         return PostureFeatures(
             head_to_shoulder_ratio=lateral_h2s,
@@ -279,5 +271,7 @@ class FeatureExtractor:
             timestamp=timestamp,
             detected_view_angle="lateral",
             ear_shoulder_offset_x=ear_shoulder_offset_x,
-            nose_shoulder_angle_deg=nose_shoulder_angle
+            nose_shoulder_angle_deg=nose_shoulder_angle,
+            craniovertebral_angle_deg=geometry.craniovertebral_angle_deg,
+            lateral_geometry=geometry
         )

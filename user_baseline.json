@@ -3,13 +3,13 @@
     "somatotype": null,
     "bmi_category": null,
     "sample_count": 90,
-    "mean_h2s_ratio": 1.651,
-    "std_h2s_ratio": 0.2682,
-    "mean_shoulder_tilt_deg": 34.31,
-    "std_shoulder_tilt_deg": 13.92,
-    "mean_head_roll_deg": 9.18,
-    "std_head_roll_deg": 10.68,
-    "mean_forward_head_z": -0.2515,
-    "std_forward_head_z": 0.0846,
-    "mean_shoulder_width_norm": 0.2249
+    "mean_h2s_ratio": 0.8703,
+    "std_h2s_ratio": 0.0333,
+    "mean_shoulder_tilt_deg": -0.65,
+    "std_shoulder_tilt_deg": 1.36,
+    "mean_head_roll_deg": 2.38,
+    "std_head_roll_deg": 2.86,
+    "mean_forward_head_z": -0.5979,
+    "std_forward_head_z": 0.0724,
+    "mean_shoulder_width_norm": 0.4168
 }

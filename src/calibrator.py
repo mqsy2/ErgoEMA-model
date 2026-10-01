@@ -25,9 +25,14 @@ class BaselineProfile:
     user_id: str = "default_user"
     somatotype: Optional[str] = None  # Ectomorph, Mesomorph, Endomorph
     bmi_category: Optional[str] = None # Underweight, Normal, Overweight
+    # Upright craniovertebral angle, recorded only when calibration was done side-on (lateral change alert)
+    mean_craniovertebral_angle_deg: Optional[float] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Serializes baseline profile to dictionary."""
+        def rounded(value: Optional[float], digits: int) -> Optional[float]:
+            return None if value is None else round(value, digits)
+
         return {
             "user_id": self.user_id,
             "somatotype": self.somatotype,
@@ -41,7 +46,8 @@ class BaselineProfile:
             "std_head_roll_deg": round(self.std_head_roll_deg, 2),
             "mean_forward_head_z": round(self.mean_forward_head_z, 4),
             "std_forward_head_z": round(self.std_forward_head_z, 4),
-            "mean_shoulder_width_norm": round(self.mean_shoulder_width_norm, 4)
+            "mean_shoulder_width_norm": round(self.mean_shoulder_width_norm, 4),
+            "mean_craniovertebral_angle_deg": rounded(self.mean_craniovertebral_angle_deg, 2)
         }
 
     def save_json(self, filepath: str):
@@ -67,7 +73,8 @@ class BaselineProfile:
             std_head_roll_deg=data["std_head_roll_deg"],
             mean_forward_head_z=data["mean_forward_head_z"],
             std_forward_head_z=data["std_forward_head_z"],
-            mean_shoulder_width_norm=data["mean_shoulder_width_norm"]
+            mean_shoulder_width_norm=data["mean_shoulder_width_norm"],
+            mean_craniovertebral_angle_deg=data.get("mean_craniovertebral_angle_deg")
         )
 
 class PostureCalibrator:
@@ -119,6 +126,7 @@ class PostureCalibrator:
         head_rolls = [s.head_roll_deg for s in self._samples]
         z_depths = [s.forward_head_z for s in self._samples]
         widths = [s.shoulder_width_norm for s in self._samples]
+        lateral_cvas = [s.craniovertebral_angle_deg for s in self._samples if s.is_lateral]
 
         self._profile = BaselineProfile(
             user_id=self.user_id,
@@ -131,7 +139,8 @@ class PostureCalibrator:
             std_head_roll_deg=float(np.std(head_rolls)),
             mean_forward_head_z=float(np.mean(z_depths)),
             std_forward_head_z=float(np.std(z_depths)),
-            mean_shoulder_width_norm=float(np.mean(widths))
+            mean_shoulder_width_norm=float(np.mean(widths)),
+            mean_craniovertebral_angle_deg=float(np.mean(lateral_cvas)) if len(lateral_cvas) > len(self._samples) / 2 else None
         )
         self._is_calibrating = False
         self._is_completed = True

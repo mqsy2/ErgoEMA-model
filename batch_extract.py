@@ -27,6 +27,7 @@ import numpy as np
 import pandas as pd
 
 from video_processor import VideoDataPipeline
+from clean_datasets import EXCLUDED_RECORDINGS
 
 # ============================================================================
 # Constants
@@ -149,6 +150,9 @@ def discover_jobs(base_dir: Path, front_only: bool = False, side_only: bool = Fa
 
             profile = PARTICIPANT_PROFILES[participant_key]
             subject_id = get_subject_id(participant_key, subfolder.name)
+            if subject_id in EXCLUDED_RECORDINGS:
+                print(f"[SKIP] {subject_id}: {EXCLUDED_RECORDINGS[subject_id]}")
+                continue
 
             jobs.append({
                 "video_path": str(video_file),

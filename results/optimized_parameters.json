@@ -1,41 +1,42 @@
 {
     "optimal_hyperparameters": {
         "alpha": 0.08,
-        "slouch_thresh": 0.08
+        "slouch_thresh": 0.08,
+        "forward_head_z_thresh": 0.2
     },
     "loso_validation_metrics": {
-        "accuracy": 0.7062338720630178,
-        "precision": 0.684144623571764,
-        "recall": 0.6544392873184608,
-        "specificity": 0.749223313035914,
-        "f1_score": 0.6689623507805326,
-        "false_alarm_rate": 0.250776686964086,
-        "tp": 4371,
-        "tn": 6029,
-        "fp": 2018,
-        "fn": 2308
+        "accuracy": 0.7938144329896907,
+        "precision": 0.7600380589914367,
+        "recall": 0.7218507138984276,
+        "specificity": 0.8432956381260097,
+        "f1_score": 0.7404523544679273,
+        "false_alarm_rate": 0.1567043618739903,
+        "tp": 3994,
+        "tn": 6786,
+        "fp": 1261,
+        "fn": 1539
     },
     "loso_macro_average": {
-        "accuracy": 0.7613307265167806,
-        "precision": 0.6921347686801484,
-        "recall": 0.8189390124231133,
-        "specificity": 0.6662302945494127,
-        "f1_score": 0.7293942273607348,
-        "false_alarm_rate": 0.33376970545058726
+        "accuracy": 0.7828064232707898,
+        "precision": 0.7308221138334545,
+        "recall": 0.7897351849634318,
+        "specificity": 0.7419225506524104,
+        "f1_score": 0.7290162509866254,
+        "false_alarm_rate": 0.2580774493475896
     },
     "in_sample_metrics": {
-        "accuracy": 0.7062338720630178,
-        "precision": 0.684144623571764,
-        "recall": 0.6544392873184608,
-        "specificity": 0.749223313035914,
-        "f1_score": 0.6689623507805326,
-        "false_alarm_rate": 0.250776686964086,
-        "tp": 4371,
-        "tn": 6029,
-        "fp": 2018,
-        "fn": 2308
+        "accuracy": 0.8125184094256259,
+        "precision": 0.7690506215096379,
+        "recall": 0.7715525031628412,
+        "specificity": 0.8406859699266808,
+        "f1_score": 0.7702995308552869,
+        "false_alarm_rate": 0.15931403007331926,
+        "tp": 4269,
+        "tn": 6765,
+        "fp": 1282,
+        "fn": 1264
     },
-    "total_training_frames": 14726,
+    "total_training_frames": 13580,
     "participant_count": 9,
     "loso_cross_validation": [
         {
@@ -45,11 +46,12 @@
             "Frames": 1389,
             "Tuned alpha": 0.08,
             "Tuned Slouch Drop (%)": 8.0,
-            "Accuracy (%)": 98.92,
-            "Precision (%)": 97.76,
-            "Recall (%)": 100.0,
-            "Specificity (%)": 97.96,
-            "F1-Score (%)": 98.87
+            "Tuned FHP Depth": 0.2,
+            "Accuracy (%)": 99.42,
+            "Precision (%)": 99.24,
+            "Recall (%)": 99.54,
+            "Specificity (%)": 99.32,
+            "F1-Score (%)": 99.39
         },
         {
             "Participant": "Participant2",
@@ -58,24 +60,26 @@
             "Frames": 1286,
             "Tuned alpha": 0.08,
             "Tuned Slouch Drop (%)": 8.0,
-            "Accuracy (%)": 71.62,
-            "Precision (%)": 65.1,
-            "Recall (%)": 96.36,
-            "Specificity (%)": 45.53,
-            "F1-Score (%)": 77.7
+            "Tuned FHP Depth": 0.2,
+            "Accuracy (%)": 73.02,
+            "Precision (%)": 70.51,
+            "Recall (%)": 81.52,
+            "Specificity (%)": 64.06,
+            "F1-Score (%)": 75.61
         },
         {
             "Participant": "Participant3",
             "Somatotype": "Endomorph",
             "BMI Category": "Normal",
-            "Frames": 4958,
+            "Frames": 3812,
             "Tuned alpha": 0.08,
             "Tuned Slouch Drop (%)": 8.0,
-            "Accuracy (%)": 60.99,
-            "Precision (%)": 62.18,
-            "Recall (%)": 53.01,
-            "Specificity (%)": 68.73,
-            "F1-Score (%)": 57.23
+            "Tuned FHP Depth": 0.2,
+            "Accuracy (%)": 93.23,
+            "Precision (%)": 83.43,
+            "Recall (%)": 99.92,
+            "Specificity (%)": 89.79,
+            "F1-Score (%)": 90.93
         },
         {
             "Participant": "Participant4",
@@ -84,6 +88,7 @@
             "Frames": 3415,
             "Tuned alpha": 0.08,
             "Tuned Slouch Drop (%)": 8.0,
+            "Tuned FHP Depth": 0.2,
             "Accuracy (%)": 63.54,
             "Precision (%)": 32.31,
             "Recall (%)": 9.29,
@@ -95,13 +100,14 @@
             "Somatotype": "Endomorph",
             "BMI Category": "Normal",
             "Frames": 1146,
-            "Tuned alpha": 0.08,
-            "Tuned Slouch Drop (%)": 8.0,
-            "Accuracy (%)": 88.74,
-            "Precision (%)": 95.98,
-            "Recall (%)": 78.38,
-            "Specificity (%)": 97.29,
-            "F1-Score (%)": 86.29
+            "Tuned alpha": 0.12,
+            "Tuned Slouch Drop (%)": 10.0,
+            "Tuned FHP Depth": 0.2,
+            "Accuracy (%)": 72.6,
+            "Precision (%)": 97.22,
+            "Recall (%)": 40.54,
+            "Specificity (%)": 99.04,
+            "F1-Score (%)": 57.22
         },
         {
             "Participant": "Participant6",
@@ -110,11 +116,12 @@
             "Frames": 753,
             "Tuned alpha": 0.08,
             "Tuned Slouch Drop (%)": 8.0,
-            "Accuracy (%)": 67.73,
-            "Precision (%)": 62.15,
-            "Recall (%)": 100.0,
-            "Specificity (%)": 31.36,
-            "F1-Score (%)": 76.66
+            "Tuned FHP Depth": 0.3,
+            "Accuracy (%)": 69.06,
+            "Precision (%)": 67.58,
+            "Recall (%)": 79.95,
+            "Specificity (%)": 56.78,
+            "F1-Score (%)": 73.25
         },
         {
             "Participant": "Participant7",
@@ -123,6 +130,7 @@
             "Frames": 317,
             "Tuned alpha": 0.08,
             "Tuned Slouch Drop (%)": 8.0,
+            "Tuned FHP Depth": 0.2,
             "Accuracy (%)": 78.23,
             "Precision (%)": 70.0,
             "Recall (%)": 100.0,
@@ -136,6 +144,7 @@
             "Frames": 745,
             "Tuned alpha": 0.08,
             "Tuned Slouch Drop (%)": 8.0,
+            "Tuned FHP Depth": 0.2,
             "Accuracy (%)": 77.32,
             "Precision (%)": 67.93,
             "Recall (%)": 100.0,
@@ -149,6 +158,7 @@
             "Frames": 717,
             "Tuned alpha": 0.08,
             "Tuned Slouch Drop (%)": 8.0,
+            "Tuned FHP Depth": 0.2,
             "Accuracy (%)": 78.1,
             "Precision (%)": 69.51,
             "Recall (%)": 100.0,
@@ -159,86 +169,515 @@
     "benchmark_comparison": [
         {
             "Model Architecture": "ErgoEMA (Adaptive Time-Series)",
-            "Accuracy (%)": 70.62,
-            "Precision (%)": 68.41,
-            "Recall (%)": 65.44,
-            "F1-Score (%)": 66.9,
-            "FAR (%)": 25.08,
-            "Latency (ms)": 0.0098
+            "Accuracy (%)": 79.38,
+            "Precision (%)": 76.0,
+            "Recall (%)": 72.19,
+            "F1-Score (%)": 74.05,
+            "FAR (%)": 15.67,
+            "Latency (ms)": 0.0162
         },
         {
             "Model Architecture": "Random Forest (100 Trees)",
-            "Accuracy (%)": 43.8,
-            "Precision (%)": 39.38,
-            "Recall (%)": 44.33,
-            "F1-Score (%)": 41.71,
-            "FAR (%)": 56.64,
-            "Latency (ms)": 4.3029
+            "Accuracy (%)": 46.16,
+            "Precision (%)": 37.88,
+            "Recall (%)": 50.24,
+            "F1-Score (%)": 43.19,
+            "FAR (%)": 56.65,
+            "Latency (ms)": 4.0785
         },
         {
             "Model Architecture": "Support Vector Machine (RBF)",
-            "Accuracy (%)": 60.59,
-            "Precision (%)": 56.66,
-            "Recall (%)": 55.76,
-            "F1-Score (%)": 56.21,
-            "FAR (%)": 35.39,
-            "Latency (ms)": 0.7148
+            "Accuracy (%)": 55.33,
+            "Precision (%)": 45.09,
+            "Recall (%)": 44.23,
+            "F1-Score (%)": 44.65,
+            "FAR (%)": 37.03,
+            "Latency (ms)": 0.6419
         },
         {
             "Model Architecture": "Logistic Regression",
-            "Accuracy (%)": 49.54,
-            "Precision (%)": 43.65,
-            "Recall (%)": 38.7,
-            "F1-Score (%)": 41.03,
-            "FAR (%)": 41.47,
-            "Latency (ms)": 0.0719
+            "Accuracy (%)": 66.61,
+            "Precision (%)": 66.45,
+            "Recall (%)": 36.44,
+            "F1-Score (%)": 47.06,
+            "FAR (%)": 12.65,
+            "Latency (ms)": 0.0715
         },
         {
             "Model Architecture": "Static Rigid Threshold",
-            "Accuracy (%)": 47.99,
-            "Precision (%)": 42.07,
-            "Recall (%)": 38.94,
-            "F1-Score (%)": 40.45,
-            "FAR (%)": 44.5,
+            "Accuracy (%)": 52.12,
+            "Precision (%)": 42.12,
+            "Recall (%)": 46.81,
+            "F1-Score (%)": 44.34,
+            "FAR (%)": 44.23,
             "Latency (ms)": 0.0001
         }
     ],
     "ablation_viewpoints": [
         {
             "Camera Perspective": "Front View (0\u00b0 - Primary Scope)",
-            "Frames": 14726,
-            "Accuracy (%)": 70.62,
-            "Precision (%)": 68.41,
-            "Recall (%)": 65.44,
-            "F1-Score (%)": 66.9,
-            "FAR (%)": 25.08
+            "Frames": 13580,
+            "Accuracy (%)": 81.25,
+            "Precision (%)": 76.91,
+            "Recall (%)": 77.16,
+            "F1-Score (%)": 77.03,
+            "FAR (%)": 15.93
         },
         {
             "Camera Perspective": "Oblique Profile (45\u00b0 View)",
             "Frames": 30827,
-            "Accuracy (%)": 58.11,
-            "Precision (%)": 79.46,
-            "Recall (%)": 22.28,
-            "F1-Score (%)": 34.8,
-            "FAR (%)": 5.8
+            "Accuracy (%)": 53.53,
+            "Precision (%)": 82.36,
+            "Recall (%)": 9.42,
+            "F1-Score (%)": 16.9,
+            "FAR (%)": 2.03
         },
         {
             "Camera Perspective": "Lateral Profile (90\u00b0 View)",
-            "Frames": 3560,
-            "Accuracy (%)": 96.84,
-            "Precision (%)": 94.04,
-            "Recall (%)": 100.0,
-            "F1-Score (%)": 96.93,
-            "FAR (%)": 6.28
+            "Frames": 3279,
+            "Accuracy (%)": 96.92,
+            "Precision (%)": 98.1,
+            "Recall (%)": 95.63,
+            "F1-Score (%)": 96.85,
+            "FAR (%)": 1.81
         },
         {
             "Camera Perspective": "All Combined Perspectives",
-            "Frames": 49113,
-            "Accuracy (%)": 57.04,
-            "Precision (%)": 64.59,
-            "Recall (%)": 26.11,
-            "F1-Score (%)": 37.18,
-            "FAR (%)": 13.59
+            "Frames": 47686,
+            "Accuracy (%)": 61.98,
+            "Precision (%)": 70.83,
+            "Recall (%)": 33.77,
+            "F1-Score (%)": 45.74,
+            "FAR (%)": 12.56
         }
-    ]
+    ],
+    "view_benchmarks": {
+        "oblique_45": {
+            "tuned_hyperparameters_in_sample": {
+                "alpha": 0.12,
+                "forward_head_z_thresh": 0.04,
+                "slouch_ratio_drop_thresh": 0.08
+            },
+            "in_sample_metrics": {
+                "accuracy": 0.5640185551626821,
+                "precision": 0.6819078357539896,
+                "recall": 0.24584653177322388,
+                "specificity": 0.8844901679906237,
+                "f1_score": 0.3613988406348,
+                "false_alarm_rate": 0.11550983200937621,
+                "tp": 3803,
+                "tn": 13584,
+                "fp": 1774,
+                "fn": 11666
+            },
+            "loso_validation_metrics": {
+                "accuracy": 0.5600285464041262,
+                "precision": 0.6692116477272727,
+                "recall": 0.24364858749757579,
+                "specificity": 0.8786951425966922,
+                "f1_score": 0.357234254300744,
+                "false_alarm_rate": 0.12130485740330772,
+                "tp": 3769,
+                "tn": 13495,
+                "fp": 1863,
+                "fn": 11700
+            },
+            "loso_macro_average": {
+                "accuracy": 0.5775334629750138,
+                "precision": 0.5184101600680058,
+                "recall": 0.3189698456556287,
+                "specificity": 0.8400717152753193,
+                "f1_score": 0.3510006327181528,
+                "false_alarm_rate": 0.15992828472468074
+            },
+            "total_frames": 30827,
+            "participant_count": 9,
+            "excluded_frames_without_participant_id": 0,
+            "loso_cross_validation": [
+                {
+                    "Participant": "Participant1",
+                    "Somatotype": "Mesomorph",
+                    "BMI Category": "Normal",
+                    "Frames": 2815,
+                    "Tuned alpha": 0.12,
+                    "Tuned Slouch Drop (%)": 8.0,
+                    "Tuned FHP Depth": 0.04,
+                    "Accuracy (%)": 51.19,
+                    "Precision (%)": 57.14,
+                    "Recall (%)": 0.87,
+                    "Specificity (%)": 99.37,
+                    "F1-Score (%)": 1.72
+                },
+                {
+                    "Participant": "Participant2",
+                    "Somatotype": "Mesomorph",
+                    "BMI Category": "Normal",
+                    "Frames": 2777,
+                    "Tuned alpha": 0.08,
+                    "Tuned Slouch Drop (%)": 8.0,
+                    "Tuned FHP Depth": 0.04,
+                    "Accuracy (%)": 44.26,
+                    "Precision (%)": 14.03,
+                    "Recall (%)": 2.23,
+                    "Specificity (%)": 86.31,
+                    "F1-Score (%)": 3.85
+                },
+                {
+                    "Participant": "Participant3",
+                    "Somatotype": "Endomorph",
+                    "BMI Category": "Normal",
+                    "Frames": 8808,
+                    "Tuned alpha": 0.2,
+                    "Tuned Slouch Drop (%)": 8.0,
+                    "Tuned FHP Depth": 0.04,
+                    "Accuracy (%)": 74.32,
+                    "Precision (%)": 91.64,
+                    "Recall (%)": 50.97,
+                    "Specificity (%)": 95.73,
+                    "F1-Score (%)": 65.51
+                },
+                {
+                    "Participant": "Participant4",
+                    "Somatotype": "Endomorph",
+                    "BMI Category": "Normal",
+                    "Frames": 8476,
+                    "Tuned alpha": 0.12,
+                    "Tuned Slouch Drop (%)": 8.0,
+                    "Tuned FHP Depth": 0.04,
+                    "Accuracy (%)": 42.46,
+                    "Precision (%)": 0.54,
+                    "Recall (%)": 0.04,
+                    "Specificity (%)": 90.67,
+                    "F1-Score (%)": 0.08
+                },
+                {
+                    "Participant": "Participant5",
+                    "Somatotype": "Endomorph",
+                    "BMI Category": "Normal",
+                    "Frames": 2725,
+                    "Tuned alpha": 0.12,
+                    "Tuned Slouch Drop (%)": 8.0,
+                    "Tuned FHP Depth": 0.04,
+                    "Accuracy (%)": 40.7,
+                    "Precision (%)": 37.63,
+                    "Recall (%)": 26.78,
+                    "Specificity (%)": 54.85,
+                    "F1-Score (%)": 31.29
+                },
+                {
+                    "Participant": "Participant6",
+                    "Somatotype": "Mesomorph",
+                    "BMI Category": "Normal",
+                    "Frames": 1580,
+                    "Tuned alpha": 0.12,
+                    "Tuned Slouch Drop (%)": 8.0,
+                    "Tuned FHP Depth": 0.04,
+                    "Accuracy (%)": 41.33,
+                    "Precision (%)": 33.97,
+                    "Recall (%)": 12.82,
+                    "Specificity (%)": 72.64,
+                    "F1-Score (%)": 18.61
+                },
+                {
+                    "Participant": "Participant7",
+                    "Somatotype": "Ectomorph",
+                    "BMI Category": "Normal",
+                    "Frames": 726,
+                    "Tuned alpha": 0.12,
+                    "Tuned Slouch Drop (%)": 8.0,
+                    "Tuned FHP Depth": 0.04,
+                    "Accuracy (%)": 83.61,
+                    "Precision (%)": 85.49,
+                    "Recall (%)": 78.78,
+                    "Specificity (%)": 87.96,
+                    "F1-Score (%)": 82.0
+                },
+                {
+                    "Participant": "Participant8",
+                    "Somatotype": "Mesomorph",
+                    "BMI Category": "Normal",
+                    "Frames": 1436,
+                    "Tuned alpha": 0.12,
+                    "Tuned Slouch Drop (%)": 8.0,
+                    "Tuned FHP Depth": 0.04,
+                    "Accuracy (%)": 54.32,
+                    "Precision (%)": 66.24,
+                    "Recall (%)": 14.71,
+                    "Specificity (%)": 92.73,
+                    "F1-Score (%)": 24.07
+                },
+                {
+                    "Participant": "Participant9",
+                    "Somatotype": "Endomorph",
+                    "BMI Category": "Overweight",
+                    "Frames": 1484,
+                    "Tuned alpha": 0.12,
+                    "Tuned Slouch Drop (%)": 8.0,
+                    "Tuned FHP Depth": 0.04,
+                    "Accuracy (%)": 87.6,
+                    "Precision (%)": 79.89,
+                    "Recall (%)": 99.86,
+                    "Specificity (%)": 75.79,
+                    "F1-Score (%)": 88.77
+                }
+            ],
+            "benchmark_comparison": [
+                {
+                    "Model Architecture": "ErgoEMA (Adaptive Time-Series)",
+                    "Accuracy (%)": 56.0,
+                    "Precision (%)": 66.92,
+                    "Recall (%)": 24.36,
+                    "F1-Score (%)": 35.72,
+                    "FAR (%)": 12.13,
+                    "Latency (ms)": 0.0163
+                },
+                {
+                    "Model Architecture": "Random Forest (100 Trees)",
+                    "Accuracy (%)": 55.91,
+                    "Precision (%)": 56.89,
+                    "Recall (%)": 50.11,
+                    "F1-Score (%)": 53.29,
+                    "FAR (%)": 38.25,
+                    "Latency (ms)": 4.1234
+                },
+                {
+                    "Model Architecture": "Support Vector Machine (RBF)",
+                    "Accuracy (%)": 58.59,
+                    "Precision (%)": 61.87,
+                    "Recall (%)": 45.53,
+                    "F1-Score (%)": 52.46,
+                    "FAR (%)": 28.27,
+                    "Latency (ms)": 1.8563
+                },
+                {
+                    "Model Architecture": "Logistic Regression",
+                    "Accuracy (%)": 50.18,
+                    "Precision (%)": 50.45,
+                    "Recall (%)": 40.65,
+                    "F1-Score (%)": 45.02,
+                    "FAR (%)": 40.21,
+                    "Latency (ms)": 0.0714
+                },
+                {
+                    "Model Architecture": "Static Rigid Threshold",
+                    "Accuracy (%)": 51.91,
+                    "Precision (%)": 88.7,
+                    "Recall (%)": 4.77,
+                    "F1-Score (%)": 9.05,
+                    "FAR (%)": 0.61,
+                    "Latency (ms)": 0.0001
+                }
+            ]
+        },
+        "lateral_90": {
+            "tuned_hyperparameters_in_sample": {
+                "alpha": 0.08,
+                "forward_head_z_thresh": 0.2,
+                "lateral_alpha": 0.25,
+                "lateral_cva_drop_thresh_deg": 5.0,
+                "slouch_ratio_drop_thresh": 0.08
+            },
+            "in_sample_metrics": {
+                "accuracy": 0.9691979261970113,
+                "precision": 0.9810486418193304,
+                "recall": 0.9562807881773399,
+                "specificity": 0.9818731117824774,
+                "f1_score": 0.968506392266916,
+                "false_alarm_rate": 0.01812688821752266,
+                "tp": 1553,
+                "tn": 1625,
+                "fp": 30,
+                "fn": 71
+            },
+            "loso_validation_metrics": {
+                "accuracy": 0.9612686794754498,
+                "precision": 0.9663551401869159,
+                "recall": 0.9550492610837439,
+                "specificity": 0.9673716012084592,
+                "f1_score": 0.960668937751626,
+                "false_alarm_rate": 0.03262839879154079,
+                "tp": 1551,
+                "tn": 1601,
+                "fp": 54,
+                "fn": 73
+            },
+            "loso_macro_average": {
+                "accuracy": 0.9200055500566743,
+                "precision": 0.9448016450771353,
+                "recall": 0.8912214286320542,
+                "specificity": 0.9542999205251044,
+                "f1_score": 0.9006262450806838,
+                "false_alarm_rate": 0.04570007947489564
+            },
+            "total_frames": 3279,
+            "participant_count": 8,
+            "excluded_frames_without_participant_id": 297,
+            "loso_cross_validation": [
+                {
+                    "Participant": "Participant1",
+                    "Somatotype": "Mesomorph",
+                    "BMI Category": "Normal",
+                    "Frames": 214,
+                    "Tuned alpha": 0.25,
+                    "Tuned CVA Drop (\u00b0)": 6.0,
+                    "Accuracy (%)": 78.5,
+                    "Precision (%)": 100.0,
+                    "Recall (%)": 56.6,
+                    "Specificity (%)": 100.0,
+                    "F1-Score (%)": 72.29
+                },
+                {
+                    "Participant": "Participant2",
+                    "Somatotype": "Mesomorph",
+                    "BMI Category": "Normal",
+                    "Frames": 234,
+                    "Tuned alpha": 0.25,
+                    "Tuned CVA Drop (\u00b0)": 4.0,
+                    "Accuracy (%)": 91.45,
+                    "Precision (%)": 85.93,
+                    "Recall (%)": 99.15,
+                    "Specificity (%)": 83.76,
+                    "F1-Score (%)": 92.06
+                },
+                {
+                    "Participant": "Participant3",
+                    "Somatotype": "Endomorph",
+                    "BMI Category": "Normal",
+                    "Frames": 175,
+                    "Tuned alpha": 0.25,
+                    "Tuned CVA Drop (\u00b0)": 3.0,
+                    "Accuracy (%)": 89.71,
+                    "Precision (%)": 75.0,
+                    "Recall (%)": 100.0,
+                    "Specificity (%)": 85.12,
+                    "F1-Score (%)": 85.71
+                },
+                {
+                    "Participant": "Participant4",
+                    "Somatotype": "Endomorph",
+                    "BMI Category": "Normal",
+                    "Frames": 116,
+                    "Tuned alpha": 0.25,
+                    "Tuned CVA Drop (\u00b0)": 5.0,
+                    "Accuracy (%)": 79.31,
+                    "Precision (%)": 100.0,
+                    "Recall (%)": 57.89,
+                    "Specificity (%)": 100.0,
+                    "F1-Score (%)": 73.33
+                },
+                {
+                    "Participant": "Participant5",
+                    "Somatotype": "Endomorph",
+                    "BMI Category": "Normal",
+                    "Frames": 649,
+                    "Tuned alpha": 0.25,
+                    "Tuned CVA Drop (\u00b0)": 4.0,
+                    "Accuracy (%)": 99.23,
+                    "Precision (%)": 98.51,
+                    "Recall (%)": 100.0,
+                    "Specificity (%)": 98.43,
+                    "F1-Score (%)": 99.25
+                },
+                {
+                    "Participant": "Participant6",
+                    "Somatotype": "Mesomorph",
+                    "BMI Category": "Normal",
+                    "Frames": 634,
+                    "Tuned alpha": 0.25,
+                    "Tuned CVA Drop (\u00b0)": 4.0,
+                    "Accuracy (%)": 98.9,
+                    "Precision (%)": 97.85,
+                    "Recall (%)": 100.0,
+                    "Specificity (%)": 97.78,
+                    "F1-Score (%)": 98.91
+                },
+                {
+                    "Participant": "Participant7",
+                    "Somatotype": "Ectomorph",
+                    "BMI Category": "Normal",
+                    "Frames": 643,
+                    "Tuned alpha": 0.25,
+                    "Tuned CVA Drop (\u00b0)": 4.0,
+                    "Accuracy (%)": 99.22,
+                    "Precision (%)": 98.55,
+                    "Recall (%)": 100.0,
+                    "Specificity (%)": 98.35,
+                    "F1-Score (%)": 99.27
+                },
+                {
+                    "Participant": "Participant8",
+                    "Somatotype": "Mesomorph",
+                    "BMI Category": "Normal",
+                    "Frames": 614,
+                    "Tuned alpha": 0.25,
+                    "Tuned CVA Drop (\u00b0)": 6.0,
+                    "Accuracy (%)": 99.67,
+                    "Precision (%)": 100.0,
+                    "Recall (%)": 99.33,
+                    "Specificity (%)": 100.0,
+                    "F1-Score (%)": 99.67
+                }
+            ],
+            "benchmark_comparison": [
+                {
+                    "Model Architecture": "ErgoEMA (Adaptive Time-Series)",
+                    "Accuracy (%)": 96.13,
+                    "Precision (%)": 96.64,
+                    "Recall (%)": 95.5,
+                    "F1-Score (%)": 96.07,
+                    "FAR (%)": 3.26,
+                    "Latency (ms)": 0.02
+                },
+                {
+                    "Model Architecture": "ErgoEMA, Clinical CVA Criterion Only",
+                    "Accuracy (%)": 83.14,
+                    "Precision (%)": 76.11,
+                    "Recall (%)": 96.12,
+                    "F1-Score (%)": 84.95,
+                    "FAR (%)": 29.61,
+                    "Latency (ms)": 0.0164
+                },
+                {
+                    "Model Architecture": "Random Forest (100 Trees)",
+                    "Accuracy (%)": 77.58,
+                    "Precision (%)": 74.52,
+                    "Recall (%)": 83.19,
+                    "F1-Score (%)": 78.62,
+                    "FAR (%)": 27.92,
+                    "Latency (ms)": 4.093
+                },
+                {
+                    "Model Architecture": "Support Vector Machine (RBF)",
+                    "Accuracy (%)": 86.52,
+                    "Precision (%)": 86.04,
+                    "Recall (%)": 86.88,
+                    "F1-Score (%)": 86.46,
+                    "FAR (%)": 13.84,
+                    "Latency (ms)": 0.1478
+                },
+                {
+                    "Model Architecture": "Logistic Regression",
+                    "Accuracy (%)": 86.79,
+                    "Precision (%)": 85.3,
+                    "Recall (%)": 88.61,
+                    "F1-Score (%)": 86.92,
+                    "FAR (%)": 14.98,
+                    "Latency (ms)": 0.0716
+                },
+                {
+                    "Model Architecture": "Static Rigid Threshold (CVA, unsmoothed)",
+                    "Accuracy (%)": 84.02,
+                    "Precision (%)": 77.17,
+                    "Recall (%)": 96.18,
+                    "F1-Score (%)": 85.64,
+                    "FAR (%)": 27.92,
+                    "Latency (ms)": 0.0001
+                }
+            ]
+        }
+    },
+    "lateral_hyperparameters": {
+        "alpha": 0.25,
+        "cva_drop_thresh_deg": 5.0
+    }
 }

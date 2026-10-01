@@ -1,7 +1,7 @@
 """
 Cleans and standardizes ErgoEMA processed datasets:
 1. Removes old un-renamed webcam duplicate files (IMG_*, WIN_*).
-2. Adds explicit 'participant_id' column (Participant1 - Participant9).
+2. Adds explicit 'participant_id' column (Participant1 - Participant9), and drops the recordings in EXCLUDED_RECORDINGS.
 3. Orders frames per participant logically: Full Upright -> Slightly Upright -> Slightly Slouch -> Full Slouch.
 4. Preserves 90deg benchmark data in all_angles_dataset.csv.
 5. Verifies participant balance and calibration readiness.
@@ -11,6 +11,15 @@ from pathlib import Path
 import pandas as pd
 
 PROCESSED_DIR = Path("data/processed")
+
+# Recordings left out of every dataset: subject_id -> reason
+EXCLUDED_RECORDINGS = {
+    "Participant3_FV_FuSl": "filed under Front View but filmed side-on, so its features are not front-view measurements",
+}
+
+def drop_excluded(df: pd.DataFrame) -> pd.DataFrame:
+    """Removes the frames of excluded recordings."""
+    return df[~df["subject_id"].astype(str).isin(EXCLUDED_RECORDINGS)]
 
 def get_posture_order(subject_id: str) -> int:
     """Returns numerical sort rank to order postures chronologically."""
@@ -35,11 +44,11 @@ def clean_front_dataset(filename: str):
     initial_count = len(df)
 
     # Filter to Participant* records only
-    df_clean = df[df["subject_id"].astype(str).str.startswith("Participant")].copy()
-    
+    df_clean = drop_excluded(df[df["subject_id"].astype(str).str.startswith("Participant")]).copy()
+
     # Extract participant_id
     df_clean["participant_id"] = df_clean["subject_id"].apply(lambda s: str(s).split("_")[0])
-    
+
     # Sort logically: by participant, then posture sequence (FuUp -> SlUp -> SlSl -> FuSl), then timestamp
     df_clean["_posture_rank"] = df_clean["subject_id"].apply(get_posture_order)
     df_clean = df_clean.sort_values(by=["participant_id", "_posture_rank", "timestamp"]).reset_index(drop=True)
@@ -93,7 +102,7 @@ def clean_all_angles_dataset():
     is_part = df["subject_id"].astype(str).str.startswith("Participant")
     is_90deg = df["view_angle"].astype(str).str.lower().isin(["90deg", "lateral"])
     
-    df_clean = df[is_part | is_90deg].copy()
+    df_clean = drop_excluded(df[is_part | is_90deg]).copy()
     
     # Assign participant_id
     def get_pid(row):

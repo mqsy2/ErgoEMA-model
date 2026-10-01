@@ -145,8 +145,8 @@ def process_lateral_videos(
                 continue
             
             timestamp = frame_idx / float(fps)
-            pose_data, results = detector.extract_landmarks(frame)
-            
+            pose_data, results = detector.extract_landmarks(frame, with_mask=True)
+
             if pose_data and pose_data.is_valid_upper_body:
                 feat = extractor.extract(pose_data, timestamp=timestamp)
                 if feat is not None:
@@ -176,6 +176,7 @@ def process_lateral_videos(
                         "shoulder_width_norm": feat.shoulder_width_norm,
                         "ear_shoulder_offset_x": feat.ear_shoulder_offset_x,
                         "nose_shoulder_angle_deg": feat.nose_shoulder_angle_deg,
+                        "craniovertebral_angle_deg": feat.craniovertebral_angle_deg,
                         "detected_view_angle": feat.detected_view_angle,
                         "is_valid": 1
                     }
@@ -201,7 +202,7 @@ def process_lateral_videos(
     # Outlier removal (Z-score > threshold) per feature
     feature_cols = ["h2s_ratio", "shoulder_tilt_deg", "head_roll_deg", 
                     "forward_head_z", "neck_flexion_deg", "shoulder_width_norm",
-                    "ear_shoulder_offset_x", "nose_shoulder_angle_deg"]
+                    "ear_shoulder_offset_x", "nose_shoulder_angle_deg", "craniovertebral_angle_deg"]
     
     outliers_removed = 0
     for col in feature_cols:
@@ -250,7 +251,8 @@ def process_lateral_videos(
                 df_prev.loc[mask, "somatotype"] = prof["somatotype"]
                 df_prev.loc[mask, "bmi_category"] = prof["bmi"]
         df_lat_combined = pd.concat([df_prev, df_new], ignore_index=True)
-        df_lat_combined = df_lat_combined.drop_duplicates(subset=["image_name"]).reset_index(drop=True)
+        # Re-processing a video refreshes its rows
+        df_lat_combined = df_lat_combined.drop_duplicates(subset=["image_name"], keep="last").reset_index(drop=True)
     else:
         df_lat_combined = df_new
     df_lat_combined.to_csv(lateral_csv, index=False)
@@ -268,7 +270,7 @@ def process_lateral_videos(
                 df_existing.loc[mask, "somatotype"] = prof["somatotype"]
                 df_existing.loc[mask, "bmi_category"] = prof["bmi"]
         df_combined = pd.concat([df_existing, df_new], ignore_index=True)
-        df_combined = df_combined.drop_duplicates(subset=["image_name"]).reset_index(drop=True)
+        df_combined = df_combined.drop_duplicates(subset=["image_name"], keep="last").reset_index(drop=True)
     else:
         df_combined = df_new
     df_combined.to_csv(side_path, index=False)
