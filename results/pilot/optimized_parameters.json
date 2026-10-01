@@ -104,7 +104,7 @@
             "Recall (%)": 90.73,
             "F1-Score (%)": 93.85,
             "FAR (%)": 2.44,
-            "Latency (ms)": 0.0144
+            "Latency (ms)": 0.0127
         },
         {
             "Model Architecture": "Random Forest (100 Trees)",
@@ -113,7 +113,7 @@
             "Recall (%)": 56.96,
             "F1-Score (%)": 59.95,
             "FAR (%)": 30.91,
-            "Latency (ms)": 6.5589
+            "Latency (ms)": 6.4664
         },
         {
             "Model Architecture": "Support Vector Machine (RBF)",
@@ -122,7 +122,7 @@
             "Recall (%)": 16.26,
             "F1-Score (%)": 18.74,
             "FAR (%)": 53.57,
-            "Latency (ms)": 0.3032
+            "Latency (ms)": 0.3033
         },
         {
             "Model Architecture": "Logistic Regression",
@@ -131,7 +131,7 @@
             "Recall (%)": 66.17,
             "F1-Score (%)": 62.78,
             "FAR (%)": 41.72,
-            "Latency (ms)": 0.1258
+            "Latency (ms)": 0.1266
         },
         {
             "Model Architecture": "Static Rigid Threshold",

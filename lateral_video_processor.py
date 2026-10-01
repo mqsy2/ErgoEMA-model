@@ -9,6 +9,7 @@ existing lateral_video_90deg.csv, side_90deg_dataset.csv, and all_angles_dataset
 import os
 import sys
 import glob
+from typing import Dict, List, Optional
 import numpy as np
 import pandas as pd
 import cv2
@@ -20,7 +21,7 @@ from config import ErgoConfig
 from src.pose_detector import PoseDetector
 from src.feature_extractor import FeatureExtractor
 
-# Standard participant demographics mapping across the study
+# Demographics of the front-view and oblique participants (the Google Forms recordings and later sessions)
 PARTICIPANT_PROFILES = {
     "Participant1": {"somatotype": "Mesomorph", "bmi": "Normal"},
     "Participant2": {"somatotype": "Mesomorph", "bmi": "Normal"},
@@ -31,6 +32,23 @@ PARTICIPANT_PROFILES = {
     "Participant7": {"somatotype": "Ectomorph", "bmi": "Normal"},
     "Participant8": {"somatotype": "Mesomorph", "bmi": "Normal"},
     "Participant9": {"somatotype": "Endomorph", "bmi": "Overweight"},
+    "Participant10": {"somatotype": "Ectomorph", "bmi": "Normal"},
+    "Participant11": {"somatotype": "Ectomorph", "bmi": "Normal"},
+}
+
+# The lateral recordings number their participants separately: lateral Participant 1 is not front Participant 1.
+# Lateral Participants 9 and 10 are front/oblique Participants 10 and 11.
+LATERAL_PARTICIPANT_PROFILES = {
+    "Participant1": {"somatotype": "Ectomorph", "bmi": "Normal"},
+    "Participant2": {"somatotype": "Ectomorph", "bmi": "Normal"},
+    "Participant3": {"somatotype": "Ectomorph", "bmi": "Normal"},
+    "Participant4": {"somatotype": "Endomorph", "bmi": "Normal"},
+    "Participant5": {"somatotype": "Endomorph", "bmi": "Normal"},
+    "Participant6": {"somatotype": "Mesomorph", "bmi": "Normal"},
+    "Participant7": {"somatotype": "Ectomorph", "bmi": "Normal"},
+    "Participant8": {"somatotype": "Mesomorph", "bmi": "Normal"},
+    "Participant9": {"somatotype": "Ectomorph", "bmi": "Normal"},
+    "Participant10": {"somatotype": "Ectomorph", "bmi": "Normal"},
 }
 
 
@@ -62,41 +80,25 @@ def parse_participant_from_filename(filename: str) -> str:
     return p
 
 
-def process_lateral_videos(
-    video_dir: str,
-    output_dir: str = "data/processed",
+def extract_lateral_videos(
+    video_files: List[str],
+    participant_map: Optional[Dict[str, str]] = None,
     sample_every_n_frames: int = 1,
     z_score_threshold: float = 3.0
 ) -> pd.DataFrame:
     """
-    Processes all MP4 videos in video_dir and extracts lateral posture features.
-    
+    Extracts lateral posture features from the given videos and removes outlier frames (no files are written).
+
     Args:
-        video_dir: Directory containing 90-degree lateral pose MP4 videos
-        output_dir: Output directory for CSVs
+        video_files: Lateral pose videos, processed in the given order
+        participant_map: Renames the participant ID parsed from a file name, e.g. {"Participant9": "Participant10"}
         sample_every_n_frames: Step size for sampling frames (default: 1, full frame rate)
         z_score_threshold: Z-score threshold for outlier removal
     """
-    os.makedirs(output_dir, exist_ok=True)
-    
-    video_extensions = ("*.mp4", "*.avi", "*.mov", "*.mkv")
-    video_files = []
-    for ext in video_extensions:
-        video_files.extend(glob.glob(os.path.join(video_dir, ext)))
-    
-    if not video_files:
-        print(f"[ERROR] No video files found in: {video_dir}")
-        return pd.DataFrame()
-    
-    video_files.sort()
-    print("=" * 72)
-    print("   ErgoEMA 90 Degree Lateral Video Processor")
-    print("=" * 72)
-    print(f"   Source Directory : {video_dir}")
-    print(f"   Videos Found     : {len(video_files)}")
+    print(f"   Videos           : {len(video_files)}")
     print(f"   Frame Sampling   : every {sample_every_n_frames} frame(s)")
     print()
-    
+
     # Initialize MediaPipe
     config = ErgoConfig()
     detector = PoseDetector(
@@ -112,9 +114,10 @@ def process_lateral_videos(
         video_name = os.path.basename(video_path)
         label = parse_label_from_filename(video_name)
         participant_id = parse_participant_from_filename(video_name)
+        participant_id = (participant_map or {}).get(participant_id, participant_id)
         subject_id = f"lateral_{participant_id}"
         
-        profile = PARTICIPANT_PROFILES.get(participant_id, {"somatotype": "Mesomorph", "bmi": "Normal"})
+        profile = LATERAL_PARTICIPANT_PROFILES.get(participant_id, {"somatotype": "Mesomorph", "bmi": "Normal"})
         somatotype = profile["somatotype"]
         bmi_category = profile["bmi"]
         
@@ -238,14 +241,53 @@ def process_lateral_videos(
         n_up = (sub["label"] == "upright").sum()
         n_sl = (sub["label"] == "slouch").sum()
         print(f"    {pid:<16}: {count:>5} frames ({n_up} upright, {n_sl} slouch)")
-    
+
+    return df_new
+
+
+def process_lateral_videos(
+    video_dir: str,
+    output_dir: str = "data/processed",
+    sample_every_n_frames: int = 1,
+    z_score_threshold: float = 3.0
+) -> pd.DataFrame:
+    """
+    Processes all MP4 videos in video_dir and merges their lateral posture features into the datasets.
+
+    Args:
+        video_dir: Directory containing 90-degree lateral pose MP4 videos
+        output_dir: Output directory for CSVs
+        sample_every_n_frames: Step size for sampling frames (default: 1, full frame rate)
+        z_score_threshold: Z-score threshold for outlier removal
+    """
+    os.makedirs(output_dir, exist_ok=True)
+
+    video_extensions = ("*.mp4", "*.avi", "*.mov", "*.mkv")
+    video_files = []
+    for ext in video_extensions:
+        video_files.extend(glob.glob(os.path.join(video_dir, ext)))
+
+    if not video_files:
+        print(f"[ERROR] No video files found in: {video_dir}")
+        return pd.DataFrame()
+
+    video_files.sort()
+    print("=" * 72)
+    print("   ErgoEMA 90 Degree Lateral Video Processor")
+    print("=" * 72)
+    print(f"   Source Directory : {video_dir}")
+
+    df_new = extract_lateral_videos(video_files, sample_every_n_frames=sample_every_n_frames, z_score_threshold=z_score_threshold)
+    if df_new.empty:
+        return df_new
+
     # 1. Update lateral_video_90deg.csv
     lateral_csv = os.path.join(output_dir, "lateral_video_90deg.csv")
     if os.path.exists(lateral_csv):
         df_prev = pd.read_csv(lateral_csv, low_memory=False)
-        # Update any legacy somatotype mappings in existing data
-        for pid, prof in PARTICIPANT_PROFILES.items():
-            mask = df_prev["subject_id"].astype(str).str.contains(pid)
+        # Update any legacy somatotype mappings in existing data (exact match: 'Participant1' must not match 'Participant10')
+        for pid, prof in LATERAL_PARTICIPANT_PROFILES.items():
+            mask = df_prev["subject_id"].astype(str) == f"lateral_{pid}"
             if mask.any():
                 df_prev.loc[mask, "participant_id"] = pid
                 df_prev.loc[mask, "somatotype"] = prof["somatotype"]
@@ -263,8 +305,8 @@ def process_lateral_videos(
     if os.path.exists(side_path):
         df_existing = pd.read_csv(side_path, low_memory=False)
         # Update participant_id and demographics for any existing lateral entries
-        for pid, prof in PARTICIPANT_PROFILES.items():
-            mask = df_existing["subject_id"].astype(str).str.contains(pid)
+        for pid, prof in LATERAL_PARTICIPANT_PROFILES.items():
+            mask = df_existing["subject_id"].astype(str) == f"lateral_{pid}"
             if mask.any():
                 df_existing.loc[mask, "participant_id"] = pid
                 df_existing.loc[mask, "somatotype"] = prof["somatotype"]

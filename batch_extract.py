@@ -51,6 +51,8 @@ PARTICIPANT_PROFILES: Dict[str, Dict[str, str]] = {
     "Participant7": {"somatotype": "Ectomorph", "bmi": "Normal"},
     "Participant8": {"somatotype": "Mesomorph", "bmi": "Normal"},
     "Participant9": {"somatotype": "Endomorph", "bmi": "Overweight"},
+    "Participant10": {"somatotype": "Ectomorph", "bmi": "Normal"},
+    "Participant11": {"somatotype": "Ectomorph", "bmi": "Normal"},
 }
 
 

@@ -43,15 +43,15 @@ All models are scored under the same LOSO protocol: each participant is predicte
 
 | Model Architecture             |   Accuracy (%) |   Precision (%) |   Recall (%) |   F1-Score (%) |   FAR (%) |   Latency (ms) |
 |:-------------------------------|---------------:|----------------:|-------------:|---------------:|----------:|---------------:|
-| ErgoEMA (Adaptive Time-Series) |          94.26 |           97.2  |        90.73 |          93.85 |      2.44 |         0.0144 |
-| Random Forest (100 Trees)      |          63.23 |           63.28 |        56.96 |          59.95 |     30.91 |         6.5589 |
-| Support Vector Machine (RBF)   |          31.85 |           22.11 |        16.26 |          18.74 |     53.57 |         0.3032 |
-| Logistic Regression            |          62.09 |           59.73 |        66.17 |          62.78 |     41.72 |         0.1258 |
+| ErgoEMA (Adaptive Time-Series) |          94.26 |           97.2  |        90.73 |          93.85 |      2.44 |         0.0127 |
+| Random Forest (100 Trees)      |          63.23 |           63.28 |        56.96 |          59.95 |     30.91 |         6.4664 |
+| Support Vector Machine (RBF)   |          31.85 |           22.11 |        16.26 |          18.74 |     53.57 |         0.3033 |
+| Logistic Regression            |          62.09 |           59.73 |        66.17 |          62.78 |     41.72 |         0.1266 |
 | Static Rigid Threshold         |          72.73 |           78.53 |        59.96 |          68    |     15.33 |         0.0001 |
 
 ### Key Findings:
 1. **Held-Out Performance**: On participants excluded from tuning, ErgoEMA reaches **94.26% accuracy** and **93.85% F1-score**. Per-participant F1 ranges from 61.80% (Participant7) to 99.01% (Participant9).
 2. **False Alarm Rate**: The held-out False Alarm Rate (FAR) is **2.44%**.
 3. **Baseline Comparison**: The highest held-out F1-score in the table is 93.85%, from ErgoEMA (Adaptive Time-Series).
-4. **Measured Latency**: The ErgoEMA EMA update and classification step takes a median of **0.0144 ms** per frame.
+4. **Measured Latency**: The ErgoEMA EMA update and classification step takes a median of **0.0127 ms** per frame.
 

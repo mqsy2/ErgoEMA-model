@@ -13,6 +13,7 @@ Performs:
 """
 
 import os
+import re
 import json
 import time
 import argparse
@@ -90,6 +91,10 @@ def extract_participant(subject_str: str) -> str:
     if " - " in s:
         return s.split(" - ")[-1].strip()
     return s
+
+def participant_order(name: str) -> List:
+    """Sort key that puts 'Participant10' after 'Participant9'."""
+    return [int(t) if t.isdigit() else t for t in re.split(r"(\d+)", str(name))]
 
 def with_person(df: pd.DataFrame) -> pd.DataFrame:
     """Adds the "person" column used to group frames by participant."""
@@ -337,7 +342,7 @@ def evaluate_view(
     benchmarks the rule variants and the ML and static baselines on the same folds.
     Every row of `df` must have a "person".
     """
-    persons = sorted(df["person"].unique())
+    persons = sorted(df["person"].unique(), key=participant_order)
     tuned = [k for k in grid[0] if len({p[k] for p in grid}) > 1]
 
     # 1. Grid Search Optimization for ErgoEMA Hyperparameters
@@ -461,7 +466,7 @@ def train_and_optimize(dataset_path: str = "data/processed/combined_dataset.csv"
         return
 
     df = with_person(pd.read_csv(dataset_path))
-    persons = sorted(df["person"].unique())
+    persons = sorted(df["person"].unique(), key=participant_order)
     if len(persons) < 2:
         print(f"[ERROR] LOSO cross-validation needs at least 2 participants, found {len(persons)}.")
         return
@@ -536,7 +541,11 @@ def train_and_optimize(dataset_path: str = "data/processed/combined_dataset.csv"
             df_v = df_all[df_all["view_angle"] == view_value]
             if len(df_v) > 0:
                 ablation_rows.append(ablation_row(title, df_v, deployed_config, alert_window))
-        ablation_rows.append(ablation_row("All Combined Perspectives", df_all, deployed_config, alert_window))
+        # The lateral recordings number their participants separately, so lateral Participant N is a different person from front Participant N
+        df_people = df_all.copy()
+        side_on = df_people["view_angle"] == "90deg"
+        df_people.loc[side_on, "participant_id"] = "lateral_" + df_people.loc[side_on, "participant_id"]
+        ablation_rows.append(ablation_row("All Combined Perspectives", df_people, deployed_config, alert_window))
         ablation_df = pd.DataFrame(ablation_rows)
         print("\n[ABLATION] Camera Perspective Sensitivity Study (deployed configuration):")
         print(ablation_df.to_string(index=False))

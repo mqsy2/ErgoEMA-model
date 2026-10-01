@@ -52,14 +52,16 @@ class VideoDataPipeline:
         "participant7": {"somatotype": "Ectomorph", "bmi": "Normal"},
         "participant8": {"somatotype": "Mesomorph", "bmi": "Normal"},
         "participant9": {"somatotype": "Endomorph", "bmi": "Overweight"},
+        "participant10": {"somatotype": "Ectomorph", "bmi": "Normal"},
+        "participant11": {"somatotype": "Ectomorph", "bmi": "Normal"},
     }
 
     def _resolve_demographics(self, subject_id: str, default_somatotype: str, default_bmi: str) -> Tuple[str, str]:
-        """Auto-resolves somatotype and BMI from participant ID if matched."""
-        sub_lower = subject_id.lower()
-        for key, profile in self.PARTICIPANT_PROFILES.items():
-            if key in sub_lower:
-                return profile["somatotype"], profile["bmi"]
+        """Auto-resolves somatotype and BMI from the participant ID that starts the subject ID (e.g. 'Participant10_FV_Up1')."""
+        # Exact match: a substring test would give 'participant10' the profile of 'participant1'
+        profile = self.PARTICIPANT_PROFILES.get(subject_id.split("_")[0].lower())
+        if profile is not None:
+            return profile["somatotype"], profile["bmi"]
         return default_somatotype, default_bmi
 
     def process_video(

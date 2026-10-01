@@ -75,7 +75,7 @@ A significant negative decrease ($\Delta Z_{FHP} < \mu_{Z, base} - \delta_{Z}$) 
 3.2.1 Data Collection Protocol
 To evaluate front-facing posture monitoring under real-world conditions, continuous high-definition video recordings were captured at 30 frames per second (fps) at 1080p resolution. In accordance with ISO 9241-5 guidelines, the camera was positioned at eye level atop the primary workstation display at a standardized viewing distance of ~60 cm.
 
-The full experimental dataset comprises **13,580 primary front-facing frames** across 9 de-identified participants representing diverse morphological somatotypes and body compositions:
+The full experimental dataset comprises **14,757 primary front-facing frames** across 11 de-identified participants representing diverse morphological somatotypes and body compositions:
 - **Participant 1**: Mesomorph, Normal BMI (1,389 frames)
 - **Participant 2**: Mesomorph, Normal BMI (1,286 frames)
 - **Participant 3**: Endomorph, Normal BMI (3,812 frames)
@@ -85,10 +85,12 @@ The full experimental dataset comprises **13,580 primary front-facing frames** a
 - **Participant 7**: Ectomorph, Normal BMI (317 frames)
 - **Participant 8**: Mesomorph, Normal BMI (745 frames)
 - **Participant 9**: Endomorph, Overweight BMI (717 frames)
+- **Participant 10**: Ectomorph, Normal BMI (560 frames)
+- **Participant 11**: Ectomorph, Normal BMI (617 frames)
 
-One front-view recording was excluded: Participant 3's full-slouch video was filmed side-on, so its 1,146 frames are side-view rather than front-view measurements.
+Participants 10 and 11 were recorded in a separate session (two upright and up to two slouch recordings per camera view). The lateral recordings come from a separate group of 10 participants with their own numbering, so lateral Participant 1 is not front Participant 1; lateral Participants 9 and 10 are front Participants 10 and 11. One front-view recording was excluded: Participant 3's full-slouch video was filmed side-on, so its 1,146 frames are side-view rather than front-view measurements.
 
-An additional **30,827 oblique profile frames** ($45^\circ$ angle) and **3,576 dedicated lateral profile frames** ($90^\circ$ Left/Right views: 3,279 participant video frames and 297 public benchmark images) were collected to serve as an empirical ablation benchmark for viewpoint sensitivity analysis (Total dataset corpus: **47,983 frames**). Controlled preliminary testing was also benchmarked on an initial 3,168-frame 4-participant pilot subset (an earlier feature extraction of Participants 1, 7, 8, and 9).
+An additional **32,752 oblique profile frames** ($45^\circ$ angle) and **4,809 dedicated lateral profile frames** ($90^\circ$ Left/Right views: 4,512 participant video frames and 297 public benchmark images) were collected to serve as an empirical ablation benchmark for viewpoint sensitivity analysis (Total dataset corpus: **52,318 frames**). Controlled preliminary testing was also benchmarked on an initial 3,168-frame 4-participant pilot subset (an earlier feature extraction of Participants 1, 7, 8, and 9).
 
 3.2.2 Data Cleaning and Anomaly Filtering Pipeline
 The raw video stream is processed through an automated cleaning pipeline:
@@ -98,7 +100,7 @@ The raw video stream is processed through an automated cleaning pipeline:
    $$\hat{\mathbf{x}}_t = \mathbf{x}_{t_0} + (t - t_0) \frac{\mathbf{x}_{t_1} - \mathbf{x}_{t_0}}{t_1 - t_0}$$
 4. Statistical Z-Score Outlier Filtering ($Z > 3.0$): Coordinate spikes caused by transient sensor noise or lighting shifts are detected and replaced:
    $$Z_t = \frac{|f_t - \bar{f}|}{\sigma_f}$$
-5. Complete De-Identification & Confidentiality: All participant identities are pseudonymized into standard identifiers (`Participant1`–`Participant9`), satisfying institutional research ethics requirements.
+5. Complete De-Identification & Confidentiality: All participant identities are pseudonymized into standard identifiers (`Participant1`–`Participant11`), satisfying institutional research ethics requirements.
 ```
 
 ---
@@ -114,7 +116,7 @@ $$\mu_{base} = \frac{1}{N} \sum_{t=1}^N R_{H2S}(t), \quad \sigma_{base} = \sqrt{
 Stage 2: Recursive $O(1)$ Exponential Moving Average (EMA) Filtering
 To eliminate high-frequency keypoint jitter, typing fidgets, and respiratory thoracic motion without memory-intensive sliding window buffers, incoming features are filtered recursively:
 $$S_t = \alpha \cdot X_t + (1 - \alpha) \cdot S_{t-1}$$
-where $\alpha \in (0, 1]$ is the smoothing factor (empirically optimized to $\alpha = 0.08$ on the full 13,580-frame dataset, and $\alpha = 0.15$ on the pilot dataset). This yields constant time $O(1)$ and space $O(1)$ computational complexity.
+where $\alpha \in (0, 1]$ is the smoothing factor (empirically optimized to $\alpha = 0.08$ on the full 14,757-frame dataset, and $\alpha = 0.15$ on the pilot dataset). This yields constant time $O(1)$ and space $O(1)$ computational complexity.
 
 Stage 3: Adaptive State Machine Classification
 The current posture state is determined by evaluating smoothed features against personalized baseline relative drops:
@@ -151,72 +153,74 @@ Unlike opaque black-box deep learning models, ErgoEMA generates actionable, huma
 
 All models are evaluated with Leave-One-Subject-Out (LOSO) cross-validation: each participant is predicted by a model tuned (ErgoEMA) or trained (machine-learning baselines, static threshold) on the other participants only. Latency is the median per-frame classification time measured by `train.py` over 1,000 frames on the test machine; it excludes MediaPipe pose estimation, which is common to all models.
 
-#### A. Scaled Cohort Evaluation (Full 13,580 Primary Front-Facing Frames, 9 Participants)
+#### A. Scaled Cohort Evaluation (Full 14,757 Primary Front-Facing Frames, 11 Participants)
 | Model Architecture | Accuracy (%) | Precision (%) | Recall (%) | F1-Score (%) | FAR (%) | Latency (ms) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **ErgoEMA (Adaptive Time-Series)** | **`79.38%`** | **`76.00%`** | **`72.19%`** | **`74.05%`** | **`15.67%`** | **`0.0127 ms`** |
-| Random Forest (100 Trees) | 46.09% | 37.87% | 50.42% | 43.25% | 56.89% | 6.3170 ms |
-| Support Vector Machine (RBF) | 55.33% | 45.09% | 44.23% | 44.65% | 37.03% | 0.7080 ms |
-| Logistic Regression | 66.61% | 66.45% | 36.44% | 47.06% | 12.65% | 0.1257 ms |
-| Static Rigid Threshold | 52.12% | 42.12% | 46.81% | 44.34% | 44.23% | 0.0001 ms |
+| **ErgoEMA (Adaptive Time-Series)** | **`74.96%`** | **`68.44%`** | **`71.37%`** | **`69.87%`** | **`22.58%`** | **`0.0128 ms`** |
+| Random Forest (100 Trees) | 51.18% | 42.14% | 53.56% | 47.17% | 50.45% | 6.3361 ms |
+| Support Vector Machine (RBF) | 53.64% | 42.86% | 41.89% | 42.37% | 38.31% | 1.0897 ms |
+| Logistic Regression | 65.30% | 63.34% | 34.91% | 45.01% | 13.86% | 0.1279 ms |
+| Static Rigid Threshold | 53.11% | 42.96% | 46.47% | 44.64% | 42.33% | 0.0001 ms |
 
-With the forward-head threshold fixed at its former 0.06 instead of tuned, the same protocol gives ErgoEMA 75.15% accuracy, 71.20% F1-score and a 25.03% FAR.
+With the forward-head threshold fixed at its former 0.06 instead of tuned, the same protocol gives ErgoEMA 75.49% accuracy, 71.80% F1-score and a 25.33% FAR.
 
 #### B. Pilot Benchmark Reference (3,168-Frame 4-Participant Subset)
 | Model Architecture | Accuracy (%) | Precision (%) | Recall (%) | F1-Score (%) | FAR (%) | Latency (ms) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **ErgoEMA (Adaptive Time-Series)** | **`94.26%`** | **`97.20%`** | **`90.73%`** | **`93.85%`** | **`2.44%`** | **`0.0144 ms`** |
-| Random Forest (100 Trees) | 63.23% | 63.28% | 56.96% | 59.95% | 30.91% | 6.5589 ms |
-| Support Vector Machine (RBF) | 31.85% | 22.11% | 16.26% | 18.74% | 53.57% | 0.3032 ms |
-| Logistic Regression | 62.09% | 59.73% | 66.17% | 62.78% | 41.72% | 0.1258 ms |
+| **ErgoEMA (Adaptive Time-Series)** | **`94.26%`** | **`97.20%`** | **`90.73%`** | **`93.85%`** | **`2.44%`** | **`0.0127 ms`** |
+| Random Forest (100 Trees) | 63.23% | 63.28% | 56.96% | 59.95% | 30.91% | 6.4664 ms |
+| Support Vector Machine (RBF) | 31.85% | 22.11% | 16.26% | 18.74% | 53.57% | 0.3033 ms |
+| Logistic Regression | 62.09% | 59.73% | 66.17% | 62.78% | 41.72% | 0.1266 ms |
 | Static Rigid Threshold | 72.73% | 78.53% | 59.96% | 68.00% | 15.33% | 0.0001 ms |
 
 The pilot subset is the earlier feature extraction of Participants 1, 7, 8, and 9 (`data/processed/pilot_dataset.csv`). Tuning and scoring ErgoEMA on the same 3,168 frames gives 96.34% accuracy, 96.09% F1-score and a 0.61% FAR; that in-sample figure is not a validation result.
 
-### 4.2 Leave-One-Subject-Out (LOSO) Cross-Validation (Full 9-Participant Cohort)
-Each participant is scored with the hyperparameters that maximize F1 on the other eight participants. Seven folds selected $\alpha = 0.08$, $\delta_{slouch} = 8\%$, $\delta_{FHP} = 0.20$; Participant 5's fold selected $\alpha = 0.12$ and $\delta_{slouch} = 10\%$, and Participant 6's fold $\delta_{FHP} = 0.30$. The personalized baseline is calibrated on the held-out participant's own first upright frames, as in live use.
+### 4.2 Leave-One-Subject-Out (LOSO) Cross-Validation (Full 11-Participant Cohort)
+Each participant is scored with the hyperparameters that maximize F1 on the other 10 participants. Eight folds selected $\alpha = 0.08$, $\delta_{slouch} = 8\%$, $\delta_{FHP} = 0.20$; Participant 3's fold selected $\delta_{FHP} = 0.06$, Participant 5's fold $\alpha = 0.12$ and $\delta_{slouch} = 10\%$, and Participant 6's fold $\delta_{FHP} = 0.30$. The personalized baseline is calibrated on the held-out participant's own first upright frames, as in live use.
 
 | Participant | Somatotype | BMI Category | Frames | Accuracy (%) | Precision (%) | Recall (%) | Specificity (%) | F1-Score (%) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | **Participant 1** | Mesomorph | Normal | 1,389 | **99.42%** | **99.24%** | **99.54%** | **99.32%** | **99.39%** |
 | **Participant 2** | Mesomorph | Normal | 1,286 | **73.02%** | **70.51%** | **81.52%** | **64.06%** | **75.61%** |
-| **Participant 3** | Endomorph | Normal | 3,812 | **93.23%** | **83.43%** | **99.92%** | **89.79%** | **90.93%** |
+| **Participant 3** | Endomorph | Normal | 3,812 | **79.33%** | **62.18%** | **99.92%** | **68.73%** | **76.66%** |
 | **Participant 4** | Endomorph | Normal | 3,415 | **63.54%** | **32.31%** | **9.29%** | **90.37%** | **14.43%** |
 | **Participant 5** | Endomorph | Normal | 1,146 | **72.60%** | **97.22%** | **40.54%** | **99.04%** | **57.22%** |
 | **Participant 6** | Mesomorph | Normal | 753 | **69.06%** | **67.58%** | **79.95%** | **56.78%** | **73.25%** |
 | **Participant 7** | Ectomorph | Normal | 317 | **78.23%** | **70.00%** | **100.00%** | **55.77%** | **82.35%** |
 | **Participant 8** | Mesomorph | Normal | 745 | **77.32%** | **67.93%** | **100.00%** | **56.33%** | **80.90%** |
 | **Participant 9** | Endomorph | Overweight | 717 | **78.10%** | **69.51%** | **100.00%** | **56.27%** | **82.02%** |
-| **Macro Average** | — | — | **13,580** | **`78.28%`** | **`73.08%`** | **`78.97%`** | **`74.19%`** | **`72.90%`** |
-| **Pooled (All Held-Out Frames)** | — | — | **13,580** | **`79.38%`** | **`76.00%`** | **`72.19%`** | **`84.33%`** | **`74.05%`** |
+| **Participant 10** | Ectomorph | Normal | 560 | **66.96%** | **51.57%** | **100.00%** | **49.04%** | **68.05%** |
+| **Participant 11** | Ectomorph | Normal | 617 | **70.83%** | **100.00%** | **34.31%** | **100.00%** | **51.09%** |
+| **Macro Average** | — | — | **14,757** | **`75.31%`** | **`71.64%`** | **`76.82%`** | **`72.34%`** | **`69.18%`** |
+| **Pooled (All Held-Out Frames)** | — | — | **14,757** | **`74.96%`** | **`68.44%`** | **`71.37%`** | **`77.42%`** | **`69.87%`** |
 
-Participant 3's *Full Slouch* front-view recording was filmed side-on and is excluded (1,146 frames; listed in `EXCLUDED_RECORDINGS` in `clean_datasets.py`), so their front-view data comes from their three other recordings. Participant 4's slouch recordings show no change in the head-to-shoulder ratio from their upright recordings, which limits every method for that participant.
+Participant 3's *Full Slouch* front-view recording was filmed side-on and is excluded (1,146 frames; listed in `EXCLUDED_RECORDINGS` in `clean_datasets.py`), so their front-view data comes from their three other recordings. Participant 4's slouch recordings show no change in the head-to-shoulder ratio from their upright recordings, which limits every method for that participant. Of the two ectomorph participants added from a separate recording session (Participants 10 and 11, Normal BMI), Participant 10's two upright recordings differ (median head-to-shoulder ratio 0.354 and 0.294), so the second is partly flagged against a baseline calibrated on the first, and Participant 11's first slouch recording shows no drop in the ratio.
 
-### 4.3 Viewpoint Sensitivity & Camera Ablation Study (47,983 Total Frames, 47,686 Scored)
+### 4.3 Viewpoint Sensitivity & Camera Ablation Study (52,318 Total Frames, 52,021 Scored)
 
 Every row runs the configuration the live app uses: the front-view hyperparameters ($\alpha = 0.08$, $\delta_{slouch} = 8\%$, $\delta_{FHP} = 0.20$) for frontal and oblique frames, and the side-on settings ($\alpha = 0.25$, alert at a CVA drop of $5^\circ$) for frames detected as lateral. The Front and Lateral rows are in-sample (tuned on those frames); the Oblique row is not.
 
 | Camera Perspective | Angle | Frames | Accuracy (%) | Precision (%) | Recall (%) | F1-Score (%) | FAR (%) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Front View ($0^\circ$ — Primary Scope)** | $0^\circ$ | 13,580 | 81.25% | 76.91% | 77.16% | 77.03% | 15.93% |
-| **Oblique Profile ($45^\circ$ View)** | $45^\circ$ | 30,827 | 53.53% | 82.36% | 9.42% | 16.90% | 2.03% |
-| **Lateral Profile ($90^\circ$ View — Change from Calibrated Upright CVA)** | $90^\circ$ | 3,279 | 96.92% | 98.10% | 95.63% | 96.85% | 1.81% |
-| **All Combined Perspectives** | All | 47,686 | 61.98% | 70.83% | 33.77% | 45.74% | 12.56% |
+| **Front View ($0^\circ$ — Primary Scope)** | $0^\circ$ | 14,757 | 80.27% | 75.66% | 75.95% | 75.80% | 16.76% |
+| **Oblique Profile ($45^\circ$ View)** | $45^\circ$ | 32,752 | 53.06% | 82.50% | 8.90% | 16.06% | 1.92% |
+| **Lateral Profile ($90^\circ$ View — Change from Calibrated Upright CVA)** | $90^\circ$ | 4,512 | 97.67% | 98.52% | 96.95% | 97.73% | 1.56% |
+| **All Combined Perspectives** | All | 52,021 | 63.26% | 74.99% | 34.70% | 47.45% | 10.60% |
 
-With the front-view settings, a $45^\circ$ camera catches only 9.42% of poor-posture frames: the tuned forward-head threshold rarely triggers at that angle. The All Combined row calibrates each participant once on their first upright frames, so side-on frames without a side-on calibration fall back to the clinical $50^\circ$ criterion. The 297 public benchmark images in the lateral dataset carry no participant ID and are not scored.
+With the front-view settings, a $45^\circ$ camera catches only 8.90% of poor-posture frames: the tuned forward-head threshold rarely triggers at that angle. In the All Combined row each front-view participant is calibrated once on their first upright frames, and that calibration also serves their oblique frames; the side-on participants, who are numbered separately, are calibrated on their own side-on upright frames. The 297 public benchmark images in the lateral dataset carry no participant ID and are not scored.
 
 ### 4.4 Key Academic Discussion Points
 1. **False Alarm Rate and Adaptive Normalization**:
-   - In computer ergonomics, excessive false alarms cause users to disable monitoring software. On held-out participants, ErgoEMA's FAR is $2.44\%$ on the pilot benchmark and $15.67\%$ on the scaled cohort. On the pilot this is lower than every baseline evaluated under the same protocol ($15.33\%$–$53.57\%$). On the scaled cohort Logistic Regression has a lower FAR ($12.65\%$) but detects only $36.44\%$ of poor-posture frames, against $72.19\%$ for ErgoEMA; the other baselines range from $37.03\%$ to $56.89\%$. Tuning the forward-head threshold, rather than fixing it at 0.06, lowered the scaled-cohort FAR from $25.03\%$ and raised the F1-score from $71.20\%$ to $74.05\%$. The FAR is uneven across participants: specificity ranges from $55.77\%$ (Participant 7) to $99.32\%$ (Participant 1).
+   - In computer ergonomics, excessive false alarms cause users to disable monitoring software. On held-out participants, ErgoEMA's FAR is $2.44\%$ on the pilot benchmark and $22.58\%$ on the scaled cohort. On the pilot this is lower than every baseline evaluated under the same protocol ($15.33\%$–$53.57\%$). On the scaled cohort Logistic Regression has a lower FAR ($13.86\%$) but detects only $34.91\%$ of poor-posture frames, against $71.37\%$ for ErgoEMA; the other baselines range from $38.31\%$ to $50.45\%$. Tuning the forward-head threshold, rather than fixing it at 0.06, lowered the scaled-cohort FAR from $25.33\%$, but also lowered the F1-score from $71.80\%$ to $69.87\%$ and the accuracy from $75.49\%$ to $74.96\%$. The FAR is uneven across participants: specificity ranges from $49.04\%$ (Participant 10) to $100.00\%$ (Participant 11).
 2. **Generalization to Unseen Participants**:
-   - The machine-learning baselines classify raw feature values and transfer poorly to unseen participants: on the scaled cohort Random Forest falls below $50\%$ held-out accuracy, and the best baseline, Logistic Regression, reaches $66.61\%$. ErgoEMA's threshold rule, which scores each frame relative to the participant's own calibrated baseline, has the highest held-out accuracy and F1-score in both benchmarks. Per-participant F1 for the threshold rule ranges from $14.43\%$ (Participant 4) to $99.39\%$ (Participant 1).
+   - The machine-learning baselines classify raw feature values and transfer poorly to unseen participants: on the scaled cohort they reach $51.18\%$–$65.30\%$ held-out accuracy, the best being Logistic Regression. ErgoEMA's threshold rule, which scores each frame relative to the participant's own calibrated baseline, has the highest held-out accuracy and F1-score in both benchmarks. Per-participant F1 for the threshold rule ranges from $14.43\%$ (Participant 4) to $99.39\%$ (Participant 1).
 3. **Computational Efficiency for Ubiquitous Deployment**:
-   - The EMA update and classification step takes a measured median of **0.0127 ms** per frame, compared with 6.32 ms for the Random Forest baseline and 0.71 ms for the SVM. This figure covers the classification stage only; end-to-end frame time is dominated by MediaPipe pose estimation, which all models share.
+   - The EMA update and classification step takes a measured median of **0.0128 ms** per frame, compared with 6.34 ms for the Random Forest baseline and 1.09 ms for the SVM. This figure covers the classification stage only; end-to-end frame time is dominated by MediaPipe pose estimation, which all models share.
 4. **Geometric Basis for Front-View Webcam Superiority & Dedicated Lateral Profiling**:
    - Direct front-view ($0^\circ$) monocular webcam geometry provides the ideal biacromial span ($W_{shoulder}$) for scale-invariant distance normalization under standard desktop constraints.
-   - For sagittal assessment, the $90^\circ$ pipeline alerts on the drop of the estimated craniovertebral angle below the user's calibrated upright CVA and names forward head posture only below the clinical $50^\circ$ criterion. On held-out participants this reaches $96.13\%$ accuracy with a $3.26\%$ FAR, against $83.14\%$ and $29.61\%$ when the $50^\circ$ criterion raises the alert, because several participants' upright posture measures close to $50^\circ$. The CVA estimate carries an uncertainty of a few degrees because C7 is located from the body outline rather than palpated. Thoracic kyphosis, which defines clinical slouching (above $40^\circ$), cannot be measured from video and is not assessed.
+   - For sagittal assessment, the $90^\circ$ pipeline alerts on the drop of the estimated craniovertebral angle below the user's calibrated upright CVA and names forward head posture only below the clinical $50^\circ$ criterion. On held-out participants this reaches $97.61\%$ accuracy with a $1.69\%$ FAR, against $83.58\%$ and $31.06\%$ when the $50^\circ$ criterion raises the alert, because several participants' upright posture measures close to $50^\circ$. The CVA estimate carries an uncertainty of a few degrees because C7 is located from the body outline rather than palpated. Thoracic kyphosis, which defines clinical slouching (above $40^\circ$), cannot be measured from video and is not assessed.
 5. **Strict Research Ethics & Participant De-Identification**:
-   - All experimental data and evaluations strictly adhere to ethical standards of participant confidentiality through complete de-identification (`Participant1` through `Participant9`), ensuring compliance with human subject research protocols.
+   - All experimental data and evaluations strictly adhere to ethical standards of participant confidentiality through complete de-identification (`Participant1` through `Participant11`), ensuring compliance with human subject research protocols.
 
 ---
 
@@ -228,5 +232,5 @@ With the front-view settings, a $45^\circ$ camera catches only 9.42% of poor-pos
 | **Scale Invariance** | Unnormalized pixel distances | **Normalized by 2D biacromial shoulder span ($R_{H2S}$)** |
 | **Morphological Bias** | Fixed population thresholds fail on varied somatotypes | **Personalized online baseline calibration ($\boldsymbol{\mu}_{base}, \boldsymbol{\sigma}_{base}$)** |
 | **Temporal Filtering** | Heavy sliding-window queues ($O(W)$ memory) | **Recursive Exponential Moving Average ($O(1)$ time/space)** |
-| **False Alarm Rate (LOSO)** | Static threshold: $\text{FAR} = 15.33\%$ (pilot), $44.23\%$ (scaled cohort) | **$\text{FAR} = 2.44\%$ (pilot), $15.67\%$ (scaled cohort)** |
+| **False Alarm Rate (LOSO)** | Static threshold: $\text{FAR} = 15.33\%$ (pilot), $42.33\%$ (scaled cohort) | **$\text{FAR} = 2.44\%$ (pilot), $22.58\%$ (scaled cohort)** |
 | **Explainability** | Opaque black-box binary classification | **Transparent XAI HUD with quantified percentage drops** |

@@ -62,78 +62,80 @@ Designed specifically for standard desktop and laptop computer workstations (~60
 
 ## 📊 Empirical Thesis Benchmark Results (Chapter 4)
 
-Evaluated across **13,580 real-world front-facing participant video frames** across diverse somatotypes and BMIs (with multi-perspective evaluation totaling **47,983 frames** across 9 de-identified study participants):
+Evaluated across **14,757 real-world front-facing participant video frames** across diverse somatotypes and BMIs (with multi-perspective evaluation totaling **52,318 frames** across 11 de-identified study participants):
 
 All accuracy figures below come from **Leave-One-Subject-Out (LOSO) cross-validation**: each participant is scored by a model tuned or trained on the other participants only. Latency is the median per-frame classification time measured by `train.py` on the machine that generated [`results/training_thesis_report.md`](results/training_thesis_report.md); it excludes MediaPipe pose estimation, which every model shares, and will differ on other hardware.
 
-### Model Architecture Comparison (Primary Front View — 13,580 Frames, LOSO)
+### Model Architecture Comparison (Primary Front View — 14,757 Frames, LOSO)
 | Model Architecture | Accuracy (%) | Precision (%) | Recall (%) | F1-Score (%) | FAR (%) | Latency (ms) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **ErgoEMA (Adaptive Time-Series)** | **`79.38%`** | **`76.00%`** | **`72.19%`** | **`74.05%`** | **`15.67%`** | **`0.0127 ms`** |
-| Random Forest (100 Trees) | 46.09% | 37.87% | 50.42% | 43.25% | 56.89% | 6.3170 ms |
-| Support Vector Machine (RBF) | 55.33% | 45.09% | 44.23% | 44.65% | 37.03% | 0.7080 ms |
-| Logistic Regression | 66.61% | 66.45% | 36.44% | 47.06% | 12.65% | 0.1257 ms |
-| Static Rigid Threshold | 52.12% | 42.12% | 46.81% | 44.34% | 44.23% | 0.0001 ms |
+| **ErgoEMA (Adaptive Time-Series)** | **`74.96%`** | **`68.44%`** | **`71.37%`** | **`69.87%`** | **`22.58%`** | **`0.0128 ms`** |
+| Random Forest (100 Trees) | 51.18% | 42.14% | 53.56% | 47.17% | 50.45% | 6.3361 ms |
+| Support Vector Machine (RBF) | 53.64% | 42.86% | 41.89% | 42.37% | 38.31% | 1.0897 ms |
+| Logistic Regression | 65.30% | 63.34% | 34.91% | 45.01% | 13.86% | 0.1279 ms |
+| Static Rigid Threshold | 53.11% | 42.96% | 46.47% | 44.64% | 42.33% | 0.0001 ms |
 
-The forward-head depth threshold $\delta_{FHP}$ is tuned with $\alpha$ and $\delta_{slouch}$; with it fixed at its former value of 0.06, the same protocol gives 75.15% accuracy, 71.20% F1 and a 25.03% FAR.
+The forward-head depth threshold $\delta_{FHP}$ is tuned with $\alpha$ and $\delta_{slouch}$. With it fixed at its former value of 0.06, the same protocol gives 75.49% accuracy, 71.80% F1 and a 25.33% FAR: tuning it lowers the FAR but, on this cohort, also slightly lowers accuracy and F1.
 
-### Leave-One-Subject-Out (LOSO) Cross-Validation (Full 9-Participant Cohort)
-Each participant is scored with the hyperparameters that maximize F1 on the other eight participants. Seven folds selected $\alpha = 0.08$, $\delta_{slouch} = 8\%$, $\delta_{FHP} = 0.20$; Participant 5's fold selected $\alpha = 0.12$ and $\delta_{slouch} = 10\%$, and Participant 6's fold $\delta_{FHP} = 0.30$. The personalized baseline is calibrated on the held-out participant's own first upright frames, as in live use.
+### Leave-One-Subject-Out (LOSO) Cross-Validation (Full 11-Participant Cohort)
+Each participant is scored with the hyperparameters that maximize F1 on the other 10 participants. Eight folds selected $\alpha = 0.08$, $\delta_{slouch} = 8\%$, $\delta_{FHP} = 0.20$; Participant 3's fold selected $\delta_{FHP} = 0.06$, Participant 5's fold $\alpha = 0.12$ and $\delta_{slouch} = 10\%$, and Participant 6's fold $\delta_{FHP} = 0.30$. The personalized baseline is calibrated on the held-out participant's own first upright frames, as in live use.
 
 | Participant | Somatotype | BMI Category | Frames | Accuracy (%) | Precision (%) | Recall (%) | Specificity (%) | F1-Score (%) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
 | **Participant 1** | Mesomorph | Normal | 1,389 | **99.42%** | **99.24%** | **99.54%** | **99.32%** | **99.39%** |
 | **Participant 2** | Mesomorph | Normal | 1,286 | **73.02%** | **70.51%** | **81.52%** | **64.06%** | **75.61%** |
-| **Participant 3** | Endomorph | Normal | 3,812 | **93.23%** | **83.43%** | **99.92%** | **89.79%** | **90.93%** |
+| **Participant 3** | Endomorph | Normal | 3,812 | **79.33%** | **62.18%** | **99.92%** | **68.73%** | **76.66%** |
 | **Participant 4** | Endomorph | Normal | 3,415 | **63.54%** | **32.31%** | **9.29%** | **90.37%** | **14.43%** |
 | **Participant 5** | Endomorph | Normal | 1,146 | **72.60%** | **97.22%** | **40.54%** | **99.04%** | **57.22%** |
 | **Participant 6** | Mesomorph | Normal | 753 | **69.06%** | **67.58%** | **79.95%** | **56.78%** | **73.25%** |
 | **Participant 7** | Ectomorph | Normal | 317 | **78.23%** | **70.00%** | **100.00%** | **55.77%** | **82.35%** |
 | **Participant 8** | Mesomorph | Normal | 745 | **77.32%** | **67.93%** | **100.00%** | **56.33%** | **80.90%** |
 | **Participant 9** | Endomorph | Overweight | 717 | **78.10%** | **69.51%** | **100.00%** | **56.27%** | **82.02%** |
-| **Macro Average** | — | — | **13,580** | **`78.28%`** | **`73.08%`** | **`78.97%`** | **`74.19%`** | **`72.90%`** |
-| **Pooled (All Held-Out Frames)** | — | — | **13,580** | **`79.38%`** | **`76.00%`** | **`72.19%`** | **`84.33%`** | **`74.05%`** |
+| **Participant 10** | Ectomorph | Normal | 560 | **66.96%** | **51.57%** | **100.00%** | **49.04%** | **68.05%** |
+| **Participant 11** | Ectomorph | Normal | 617 | **70.83%** | **100.00%** | **34.31%** | **100.00%** | **51.09%** |
+| **Macro Average** | — | — | **14,757** | **`75.31%`** | **`71.64%`** | **`76.82%`** | **`72.34%`** | **`69.18%`** |
+| **Pooled (All Held-Out Frames)** | — | — | **14,757** | **`74.96%`** | **`68.44%`** | **`71.37%`** | **`77.42%`** | **`69.87%`** |
 
-Participant 3's *Full Slouch* front-view recording was filmed side-on and is excluded (1,146 frames; listed in `EXCLUDED_RECORDINGS` in `clean_datasets.py`), so their front-view data comes from their three other recordings. Participant 4's slouch recordings show no change in the head-to-shoulder ratio from their upright recordings, which limits every method for that participant.
+Participant 3's *Full Slouch* front-view recording was filmed side-on and is excluded (1,146 frames; listed in `EXCLUDED_RECORDINGS` in `clean_datasets.py`), so their front-view data comes from their three other recordings. Participant 4's slouch recordings show no change in the head-to-shoulder ratio from their upright recordings, which limits every method for that participant. Of the two ectomorph participants added from a separate recording session (Participants 10 and 11, Normal BMI), Participant 10's two upright recordings differ (median head-to-shoulder ratio 0.354 and 0.294), so the second is partly flagged against a baseline calibrated on the first, and Participant 11's first slouch recording shows no drop in the ratio.
 
 ### Camera Viewpoint Sensitivity & Perspective Ablation
 Every row runs the configuration the live app uses: the front-view hyperparameters ($\alpha = 0.08$, $\delta_{slouch} = 8\%$, $\delta_{FHP} = 0.20$) for frontal and oblique frames, and the side-on settings ($\alpha = 0.25$, alert at a CVA drop of $5^\circ$) for frames detected as lateral. The Front and Lateral rows are in-sample (tuned on those frames); the Oblique row is not.
 
 | Camera Perspective | Angle | Frames | Accuracy (%) | Precision (%) | Recall (%) | F1-Score (%) | FAR (%) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Front View (Primary Scope)** | $0^\circ$ | 13,580 | 81.25% | 76.91% | 77.16% | 77.03% | 15.93% |
-| **Oblique Profile** | $45^\circ$ | 30,827 | 53.53% | 82.36% | 9.42% | 16.90% | 2.03% |
-| **Lateral Profile** | $90^\circ$ | 3,279 | 96.92% | 98.10% | 95.63% | 96.85% | 1.81% |
-| **All Combined Perspectives** | All | 47,686 | 61.98% | 70.83% | 33.77% | 45.74% | 12.56% |
+| **Front View (Primary Scope)** | $0^\circ$ | 14,757 | 80.27% | 75.66% | 75.95% | 75.80% | 16.76% |
+| **Oblique Profile** | $45^\circ$ | 32,752 | 53.06% | 82.50% | 8.90% | 16.06% | 1.92% |
+| **Lateral Profile** | $90^\circ$ | 4,512 | 97.67% | 98.52% | 96.95% | 97.73% | 1.56% |
+| **All Combined Perspectives** | All | 52,021 | 63.26% | 74.99% | 34.70% | 47.45% | 10.60% |
 
-With the front-view settings, a $45^\circ$ camera catches only 9.42% of poor-posture frames: the tuned forward-head threshold rarely triggers at that angle. The All Combined row calibrates each participant once on their first upright frames, so side-on frames without a side-on calibration fall back to the clinical $50^\circ$ criterion. The 297 public benchmark images in the lateral dataset carry no participant ID and are not scored.
+With the front-view settings, a $45^\circ$ camera catches only 8.90% of poor-posture frames: the tuned forward-head threshold rarely triggers at that angle. In the All Combined row each front-view participant is calibrated once on their first upright frames, and that calibration also serves their oblique frames; the side-on participants, who are numbered separately, are calibrated on their own side-on upright frames. The 297 public benchmark images in the lateral dataset carry no participant ID and are not scored.
 
 ### Per-View Benchmarks: Oblique ($45^\circ$) and Lateral ($90^\circ$), LOSO
-The LOSO protocol above, re-run on each camera view's own recordings: ErgoEMA is tuned on the other participants' frames from that view, and each participant's baseline is calibrated in that view. In the lateral view the tuned settings are $\alpha$ and the CVA drop that raises the alert, and the ML baselines are trained on the side-view measurements (CVA, ear-to-shoulder offset, nose-to-shoulder angle). Per-participant tables are in Sections 5 and 6 of [`results/training_thesis_report.md`](results/training_thesis_report.md), with figures [`benchmark_oblique_45.png`](results/benchmark_oblique_45.png) and [`benchmark_lateral_90.png`](results/benchmark_lateral_90.png).
+The LOSO protocol above, re-run on each camera view's own recordings: ErgoEMA is tuned on the other participants' frames from that view, and each participant's baseline is calibrated in that view. In the lateral view the tuned settings are $\alpha$ and the CVA drop that raises the alert, and the ML baselines are trained on the side-view measurements (CVA, ear-to-shoulder offset, nose-to-shoulder angle). The lateral recordings come from a separate group of 10 participants with their own numbering, so lateral Participant 1 is not front Participant 1; lateral Participants 9 and 10 are front Participants 10 and 11. Per-participant tables are in Sections 5 and 6 of [`results/training_thesis_report.md`](results/training_thesis_report.md), with figures [`benchmark_oblique_45.png`](results/benchmark_oblique_45.png) and [`benchmark_lateral_90.png`](results/benchmark_lateral_90.png).
 
-**Oblique Profile ($45^\circ$): 30,827 frames, 9 participants**
-
-| Model Architecture | Accuracy (%) | Precision (%) | Recall (%) | F1-Score (%) | FAR (%) | Latency (ms) |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **ErgoEMA (Adaptive Time-Series)** | **`56.00%`** | **`66.92%`** | **`24.36%`** | **`35.72%`** | **`12.13%`** | **`0.0123 ms`** |
-| Random Forest (100 Trees) | 55.83% | 56.79% | 50.15% | 53.26% | 38.44% | 6.3923 ms |
-| Support Vector Machine (RBF) | 58.59% | 61.87% | 45.53% | 52.46% | 28.27% | 2.0630 ms |
-| Logistic Regression | 50.19% | 50.45% | 40.65% | 45.02% | 40.21% | 0.1261 ms |
-| Static Rigid Threshold | 51.91% | 88.70% | 4.77% | 9.05% | 0.61% | 0.0001 ms |
-
-**Lateral Profile ($90^\circ$): 3,279 frames, 8 participants**
+**Oblique Profile ($45^\circ$): 32,752 frames, 11 participants**
 
 | Model Architecture | Accuracy (%) | Precision (%) | Recall (%) | F1-Score (%) | FAR (%) | Latency (ms) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **ErgoEMA (Adaptive Time-Series)** | **`96.13%`** | **`96.64%`** | **`95.50%`** | **`96.07%`** | **`3.26%`** | **`0.0144 ms`** |
-| ErgoEMA, Clinical CVA Criterion Only | 83.14% | 76.11% | 96.12% | 84.95% | 29.61% | 0.0143 ms |
-| Random Forest (100 Trees) | 77.62% | 74.56% | 83.19% | 78.64% | 27.85% | 6.5153 ms |
-| Support Vector Machine (RBF) | 86.52% | 86.04% | 86.88% | 86.46% | 13.84% | 0.1636 ms |
-| Logistic Regression | 86.79% | 85.30% | 88.61% | 86.92% | 14.98% | 0.1250 ms |
-| Static Rigid Threshold (CVA, unsmoothed) | 84.02% | 77.17% | 96.18% | 85.64% | 27.92% | 0.0001 ms |
+| **ErgoEMA (Adaptive Time-Series)** | **`55.57%`** | **`65.95%`** | **`24.76%`** | **`36.01%`** | **`13.03%`** | **`0.0127 ms`** |
+| Random Forest (100 Trees) | 54.91% | 55.87% | 50.75% | 53.19% | 40.85% | 6.5527 ms |
+| Support Vector Machine (RBF) | 64.65% | 75.54% | 44.31% | 55.86% | 14.62% | 2.2382 ms |
+| Logistic Regression | 49.88% | 50.46% | 39.15% | 44.09% | 39.19% | 0.1264 ms |
+| Static Rigid Threshold | 51.49% | 88.70% | 4.46% | 8.50% | 0.58% | 0.0001 ms |
 
-- At $45^\circ$ the threshold rule flags only 24.36% of the poor-posture frames, because the head-to-shoulder ratio barely changes when most participants slouch at this angle. Every fold selected the most sensitive forward-head threshold (0.04), trading accuracy for F1 (58.11% accuracy and 34.80% F1 with the former fixed 0.06). Random Forest and SVM reach 53.26% and 52.46% F1, at 38.44% and 28.27% false alarm rates.
-- At $90^\circ$ ErgoEMA alerts when the CVA falls more than a tuned number of degrees below the participant's calibrated upright CVA (the folds selected 3°–6°, with $\alpha = 0.25$). On held-out participants this reaches 96.13% accuracy, 96.07% F1 and a 3.26% FAR, against 83.14%, 84.95% and 29.61% when the clinical criterion (CVA below $50^\circ$) raises the alert, and 86.92% F1 for the best machine-learning baseline (Logistic Regression). Forward Head Posture is still named only when the CVA is below $50^\circ$; a drop that leaves it above is reported as a head-forward shift from the participant's upright. Most remaining errors are missed frames of Participants 1 and 4 (recall 56.60% and 57.89%).
+**Lateral Profile ($90^\circ$): 4,512 frames, 10 participants**
+
+| Model Architecture | Accuracy (%) | Precision (%) | Recall (%) | F1-Score (%) | FAR (%) | Latency (ms) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **ErgoEMA (Adaptive Time-Series)** | **`97.61%`** | **`98.39%`** | **`96.95%`** | **`97.66%`** | **`1.69%`** | **`0.0149 ms`** |
+| ErgoEMA, Clinical CVA Criterion Only | 83.58% | 76.97% | 97.29% | 85.95% | 31.06% | 0.0129 ms |
+| Random Forest (100 Trees) | 81.85% | 82.97% | 81.58% | 82.27% | 17.87% | 6.6058 ms |
+| Support Vector Machine (RBF) | 86.10% | 89.29% | 83.04% | 86.05% | 10.63% | 0.1762 ms |
+| Logistic Regression | 88.90% | 92.39% | 85.53% | 88.83% | 7.51% | 0.1259 ms |
+| Static Rigid Threshold (CVA, unsmoothed) | 84.13% | 77.61% | 97.34% | 86.36% | 29.96% | 0.0002 ms |
+
+- At $45^\circ$ the threshold rule flags only 24.76% of the poor-posture frames, because the head-to-shoulder ratio barely changes when most participants slouch at this angle. Every fold selected the most sensitive forward-head threshold (0.04), trading accuracy for F1 (57.89% accuracy and 35.27% F1 with the former fixed 0.06). Random Forest and SVM reach 53.19% and 55.86% F1, at 40.85% and 14.62% false alarm rates.
+- At $90^\circ$ ErgoEMA alerts when the CVA falls more than a tuned number of degrees below the participant's calibrated upright CVA (the folds selected 4°–5°, with $\alpha = 0.25$). On held-out participants this reaches 97.61% accuracy, 97.66% F1 and a 1.69% FAR, against 83.58%, 85.95% and 31.06% when the clinical criterion (CVA below $50^\circ$) raises the alert, and 88.83% F1 for the best machine-learning baseline (Logistic Regression). Forward Head Posture is still named only when the CVA is below $50^\circ$; a drop that leaves it above is reported as a head-forward shift from the participant's upright. Most remaining errors are missed frames of Participants 1 and 4 (recall 60.38% and 57.89%).
 
 ### Pilot Benchmark Reference (4-Participant Subset — 3,168 Frames)
 *Initial proof-of-concept benchmark on [`data/processed/pilot_dataset.csv`](data/processed/pilot_dataset.csv): the earlier feature extraction of Participants 1, 7, 8, and 9. Reproduce with `python train.py --data data/processed/pilot_dataset.csv --output results/pilot --skip-ablation` (full report: [`results/pilot/training_thesis_report.md`](results/pilot/training_thesis_report.md)).*
@@ -273,6 +275,12 @@ Use **[`lateral_video_processor.py`](lateral_video_processor.py)** to process la
 python lateral_video_processor.py
 ```
 
+#### Option D: Add a Recording Session (Front, Oblique and Lateral Folders)
+Use **[`add_participant_videos.py`](add_participant_videos.py)** for a folder with `Front Facing`, `Oblique` and `Lateral` subfolders and files named like `Participant 10-Upright 2.mp4` or `Participant 11-Slouch Left.mp4`. Add the front/oblique participants to `PARTICIPANT_PROFILES` and the lateral ones to `LATERAL_PARTICIPANT_PROFILES` in [`lateral_video_processor.py`](lateral_video_processor.py) first: the lateral recordings number their participants separately, so a lateral file's number is its lateral ID. `--dry-run` lists the clips and their IDs without extracting anything, and `--lateral-map` can rename lateral IDs if needed. The new rows are appended without changing any existing row, and recordings already in the datasets are refused.
+```powershell
+python add_participant_videos.py --dir "C:\Users\...\Ectomorph Posture"
+```
+
 #### Video Processor Parameters:
 | Argument | Options | Description |
 | :--- | :--- | :--- |
@@ -287,7 +295,7 @@ python lateral_video_processor.py
 | `--output` | Directory Path | Destination folder for processed CSV files (default: `data/processed`). |
 
 > [!NOTE]
-> Processed frames are automatically merged and deduplicated into [`data/processed/combined_dataset.csv`](data/processed/combined_dataset.csv) (13,580 frames) and [`data/processed/front_view_dataset.csv`](data/processed/front_view_dataset.csv) (13,580 frames). Recordings listed in `EXCLUDED_RECORDINGS` in [`clean_datasets.py`](clean_datasets.py) are skipped by `batch_extract.py` and dropped by `clean_datasets.py`. Batch extraction across all subfolders is handled via [`batch_extract.py`](batch_extract.py).
+> Processed frames are automatically merged and deduplicated into [`data/processed/combined_dataset.csv`](data/processed/combined_dataset.csv) (14,757 frames) and [`data/processed/front_view_dataset.csv`](data/processed/front_view_dataset.csv) (14,757 frames). Recordings listed in `EXCLUDED_RECORDINGS` in [`clean_datasets.py`](clean_datasets.py) are skipped by `batch_extract.py` and dropped by `clean_datasets.py`. Batch extraction across all subfolders is handled via [`batch_extract.py`](batch_extract.py).
 
 ---
 
@@ -307,10 +315,10 @@ python train.py --data data/processed/pilot_dataset.csv --output results/pilot -
 
 #### What `train.py` Performs:
 1. **Grid Search Optimization**: Sweeps EMA smoothing factors ($\alpha \in \{0.08, 0.12, 0.15, 0.20, 0.25\}$), slouch ratio drop thresholds ($\delta_{slouch} \in \{8, 10, 12, 15, 18\}\%$) and forward-head depth thresholds ($\delta_{FHP} \in \{0.04, 0.06, 0.10, 0.15, 0.20, 0.30\}$). The values that maximize F1 over all participants are saved as the deployed hyperparameters.
-2. **Leave-One-Subject-Out (LOSO) Cross-Validation**: For each participant, selects the hyperparameters that maximize F1 on the other participants and scores them on the held-out participant (9 folds on 13,580 front-facing frames).
+2. **Leave-One-Subject-Out (LOSO) Cross-Validation**: For each participant, selects the hyperparameters that maximize F1 on the other participants and scores them on the held-out participant (11 folds on 14,757 front-facing frames).
 3. **Machine Learning Benchmarking**: Compares ErgoEMA against Random Forest, SVM (RBF), Logistic Regression, and Static Rigid Threshold baselines under the same LOSO protocol, and measures each model's per-frame classification latency.
 4. **Per-View Benchmarks**: Repeats steps 1–3 on the oblique ($45^\circ$) and lateral ($90^\circ$) recordings. In the lateral view the grid covers the side-on smoothing factor and the CVA drop that raises the alert ($2^\circ$–$15^\circ$); the tuned values are saved for side-on frames.
-5. **Camera Viewpoint Ablation Study**: Runs the live app's configuration on the Front View ($0^\circ$), Oblique Profile ($45^\circ$), and Lateral Profile ($90^\circ$) recordings (47,686 scored frames). Steps 4 and 5 are skipped with `--skip-ablation`. A full run takes about 8 minutes.
+5. **Camera Viewpoint Ablation Study**: Runs the live app's configuration on the Front View ($0^\circ$), Oblique Profile ($45^\circ$), and Lateral Profile ($90^\circ$) recordings (52,021 scored frames). Steps 4 and 5 are skipped with `--skip-ablation`. A full run takes about 8 minutes.
 6. **Generates Academic Artifacts**:
    - 📄 **[`results/training_thesis_report.md`](results/training_thesis_report.md)**: Markdown tables formatted for Chapter 4.
    - 📈 **[`results/training_optimization_curves.png`](results/training_optimization_curves.png)**: High-resolution 3-panel publication figure.
@@ -338,6 +346,7 @@ ErgoEMA-model/
 ├── train.py                  # Optimization, LOSO cross-validation, and benchmark suite
 ├── video_processor.py        # Video extraction, data cleaning, and CSV generation pipeline
 ├── lateral_video_processor.py # 90° lateral profile processing (craniovertebral angle features)
+├── add_participant_videos.py  # Adds a session's front, oblique and lateral videos to every dataset
 ├── batch_extract.py          # Batch automated video processing pipeline across participant folders
 ├── clean_datasets.py         # Automated data cleaning, de-identification, and CSV deduplication
 ├── dataset_collector.py      # Live webcam data collection and annotation tool
@@ -358,12 +367,12 @@ ErgoEMA-model/
 │
 ├── data/
 │   └── processed/            # Cleaned, de-identified frame datasets
-│       ├── combined_dataset.csv      # Primary training dataset (Front view — 13,580 frames)
+│       ├── combined_dataset.csv      # Primary training dataset (Front view — 14,757 frames)
 │       ├── pilot_dataset.csv         # Pilot subset: earlier extraction of Participants 1, 7, 8, 9 (3,168 frames)
-│       ├── front_view_dataset.csv    # Front-facing camera recordings (13,580 frames)
-│       ├── side_view_dataset.csv     # Oblique profile recordings for viewpoint ablation (30,827 frames)
-│       ├── side_90deg_dataset.csv    # Dedicated 90° lateral profile dataset (3,576 frames)
-│       └── all_angles_dataset.csv    # Full multi-perspective dataset (47,983 frames)
+│       ├── front_view_dataset.csv    # Front-facing camera recordings (14,757 frames)
+│       ├── side_view_dataset.csv     # Oblique profile recordings for viewpoint ablation (32,752 frames)
+│       ├── side_90deg_dataset.csv    # Dedicated 90° lateral profile dataset (4,809 frames)
+│       └── all_angles_dataset.csv    # Full multi-perspective dataset (52,318 frames)
 │
 ├── results/                  # Generated benchmark artifacts
 │   ├── optimized_parameters.json     # Deployed hyperparameters (loaded by main.py) and LOSO metrics
