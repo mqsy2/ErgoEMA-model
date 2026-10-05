@@ -53,17 +53,17 @@ All models are scored under the same LOSO protocol: each participant is predicte
 
 | Model Architecture             |   Accuracy (%) |   Precision (%) |   Recall (%) |   F1-Score (%) |   FAR (%) |   Latency (ms) |
 |:-------------------------------|---------------:|----------------:|-------------:|---------------:|----------:|---------------:|
-| ErgoEMA (Adaptive Time-Series) |          74.96 |           68.44 |        71.37 |          69.87 |     22.58 |         0.0192 |
-| Random Forest (100 Trees)      |          51.11 |           42.1  |        53.71 |          47.2  |     50.68 |         4.2989 |
-| Support Vector Machine (RBF)   |          53.64 |           42.86 |        41.89 |          42.37 |     38.31 |         0.716  |
-| Logistic Regression            |          65.3  |           63.34 |        34.91 |          45.01 |     13.86 |         0.0712 |
-| Static Rigid Threshold         |          53.11 |           42.96 |        46.47 |          44.64 |     42.33 |         0.0001 |
+| ErgoEMA (Adaptive Time-Series) |          74.96 |           68.44 |        71.37 |          69.87 |     22.58 |         0.0165 |
+| Random Forest (100 Trees)      |          51.11 |           42.1  |        53.71 |          47.2  |     50.68 |         4.3074 |
+| Support Vector Machine (RBF)   |          53.64 |           42.86 |        41.89 |          42.37 |     38.31 |         0.8421 |
+| Logistic Regression            |          65.3  |           63.34 |        34.91 |          45.01 |     13.86 |         0.0733 |
+| Static Rigid Threshold         |          53.11 |           42.96 |        46.47 |          44.64 |     42.33 |         0.0002 |
 
 ### Key Findings:
 1. **Held-Out Performance**: On participants excluded from tuning, ErgoEMA reaches **74.96% accuracy** and **69.87% F1-score**. Per-participant F1 ranges from 14.43% (Participant4) to 99.39% (Participant1).
 2. **False Alarm Rate**: The held-out False Alarm Rate (FAR) is **22.58%**.
 3. **Baseline Comparison**: The highest held-out F1-score in the table is 69.87%, from ErgoEMA (Adaptive Time-Series).
-4. **Measured Latency**: The ErgoEMA EMA update and classification step takes a median of **0.0192 ms** per frame.
+4. **Measured Latency**: The ErgoEMA EMA update and classification step takes a median of **0.0165 ms** per frame.
 
 ---
 
@@ -111,10 +111,10 @@ The protocol of Sections 2 and 3, run on the 32,752 oblique-profile frames (came
 
 | Model Architecture             |   Accuracy (%) |   Precision (%) |   Recall (%) |   F1-Score (%) |   FAR (%) |   Latency (ms) |
 |:-------------------------------|---------------:|----------------:|-------------:|---------------:|----------:|---------------:|
-| ErgoEMA (Adaptive Time-Series) |          55.57 |           65.95 |        24.76 |          36.01 |     13.03 |         0.0164 |
-| Random Forest (100 Trees)      |          54.9  |           55.87 |        50.71 |          53.17 |     40.83 |         4.2678 |
-| Support Vector Machine (RBF)   |          64.65 |           75.54 |        44.31 |          55.86 |     14.62 |         2.0695 |
-| Logistic Regression            |          49.89 |           50.46 |        39.14 |          44.09 |     39.16 |         0.0718 |
+| ErgoEMA (Adaptive Time-Series) |          55.57 |           65.95 |        24.76 |          36.01 |     13.03 |         0.0217 |
+| Random Forest (100 Trees)      |          54.9  |           55.87 |        50.71 |          53.17 |     40.83 |         4.8419 |
+| Support Vector Machine (RBF)   |          64.65 |           75.54 |        44.31 |          55.86 |     14.62 |         2.2433 |
+| Logistic Regression            |          49.89 |           50.46 |        39.14 |          44.09 |     39.16 |         0.0734 |
 | Static Rigid Threshold         |          51.49 |           88.7  |         4.46 |           8.5  |      0.58 |         0.0001 |
 
 On held-out participants, ErgoEMA reaches **55.57% accuracy**, **36.01% F1-score** and a **13.03% False Alarm Rate**; per-participant F1 ranges from 0.00% (Participant1) to 88.77% (Participant9). The highest held-out F1-score in the comparison is 55.86%, from Support Vector Machine (RBF).
@@ -146,12 +146,12 @@ The protocol of Sections 2 and 3, run on the 4,512 lateral-profile frames of the
 
 | Model Architecture                       |   Accuracy (%) |   Precision (%) |   Recall (%) |   F1-Score (%) |   FAR (%) |   Latency (ms) |
 |:-----------------------------------------|---------------:|----------------:|-------------:|---------------:|----------:|---------------:|
-| ErgoEMA (Adaptive Time-Series)           |          97.61 |           98.39 |        96.95 |          97.66 |      1.69 |         0.0197 |
-| ErgoEMA, Clinical CVA Criterion Only     |          83.58 |           76.97 |        97.29 |          85.95 |     31.06 |         0.0167 |
-| Random Forest (100 Trees)                |          81.85 |           82.97 |        81.58 |          82.27 |     17.87 |         4.3448 |
-| Support Vector Machine (RBF)             |          86.1  |           89.29 |        83.04 |          86.05 |     10.63 |         0.1592 |
-| Logistic Regression                      |          88.9  |           92.39 |        85.53 |          88.83 |      7.51 |         0.0746 |
-| Static Rigid Threshold (CVA, unsmoothed) |          84.13 |           77.61 |        97.34 |          86.36 |     29.96 |         0.0001 |
+| ErgoEMA (Adaptive Time-Series)           |          97.61 |           98.39 |        96.95 |          97.66 |      1.69 |         0.0207 |
+| ErgoEMA, Clinical CVA Criterion Only     |          83.58 |           76.97 |        97.29 |          85.95 |     31.06 |         0.0166 |
+| Random Forest (100 Trees)                |          81.85 |           82.97 |        81.58 |          82.27 |     17.87 |         4.643  |
+| Support Vector Machine (RBF)             |          86.1  |           89.29 |        83.04 |          86.05 |     10.63 |         0.161  |
+| Logistic Regression                      |          88.9  |           92.39 |        85.53 |          88.83 |      7.51 |         0.073  |
+| Static Rigid Threshold (CVA, unsmoothed) |          84.13 |           77.61 |        97.34 |          86.36 |     29.96 |         0.0002 |
 
 On held-out participants, ErgoEMA reaches **97.61% accuracy**, **97.66% F1-score** and a **1.69% False Alarm Rate**; per-participant F1 ranges from 73.33% (Participant4) to 100.00% (Participant8). The highest held-out F1-score in the comparison is 97.66%, from ErgoEMA (Adaptive Time-Series).
 
