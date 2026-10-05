@@ -222,6 +222,9 @@ def main():
                 cv2.putText(frame, line, (frame.shape[1] - 320, 62 + 25 * i),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.55, (200, 200, 200), 2, cv2.LINE_AA)
 
+            # Feedback Card (right side, below the mode and somatotype indicators)
+            frame = explainer.render_feedback(frame, assessment, top=55 + 25 * len(soma_lines))
+
             # Show Window
             cv2.imshow("ErgoEMA - Front-Facing Posture Monitor", frame)
 

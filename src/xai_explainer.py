@@ -3,7 +3,7 @@ Explainable AI (XAI) Output Engine and Visual HUD Renderer.
 Provides transparent, interpretable diagnostic feedback for Upright, Slouch, and FHP posture states.
 """
 
-from typing import Tuple, Optional
+from typing import List, Tuple, Optional
 import cv2
 import numpy as np
 from .classifier import PostureAssessment, PostureState
@@ -37,6 +37,12 @@ class XAIExplainer:
         
         return f"Postural Deviation: {assessment.state.value}"
 
+    def describe_state(self, assessment: PostureAssessment) -> str:
+        """Names every posture problem that exceeded its threshold, most severe first (e.g. "Slouch + FHP")."""
+        if len(assessment.violations) > 1:
+            return " + ".join("FHP" if s == PostureState.FORWARD_HEAD else s.value for s in assessment.violations)
+        return assessment.state.value
+
     def render_hud(
         self,
         frame: np.ndarray,
@@ -56,7 +62,7 @@ class XAIExplainer:
 
         # Top Diagnostic Card (the lateral view shows one more telemetry row)
         lateral_rows = not is_calibrating and features is not None and features.is_lateral
-        card_w, card_h = min(480, w - 40), 182 if lateral_rows else 160
+        card_w, card_h = min(480, w - 40), 155 if lateral_rows else 140
         card_x, card_y = 20, 20
         
         # Draw translucent background card
@@ -105,7 +111,7 @@ class XAIExplainer:
             status_title = f"DETECTING ({assessment.sustained_duration_sec:.1f}s)"
         else:
             badge_color = self.COLOR_ALERT
-            status_title = f"ALERT: {assessment.state.value.upper()}"
+            status_title = f"ALERT: {self.describe_state(assessment).upper()}"
 
         # Status Badge
         cv2.rectangle(frame, (card_x + 15, card_y + 40), (card_x + 15 + 10, card_y + 65), badge_color, -1)
@@ -153,13 +159,6 @@ class XAIExplainer:
             cv2.putText(frame, fhp_str, (card_x + 15, card_y + 112),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.48, self.COLOR_TEXT, 1, cv2.LINE_AA)
 
-        # XAI Explanation Footer on Card
-        explanation = self.generate_explanation(assessment)
-        if len(explanation) > 55:
-            explanation = explanation[:52] + "..."
-        cv2.putText(frame, f"XAI: {explanation}", (card_x + 15, card_y + card_h - 20),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.42, self.COLOR_TEXT_DIM, 1, cv2.LINE_AA)
-
         # Draw Persistent Bottom Banner during Active Sustained Alert
         if assessment.is_alert:
             banner_h = 50
@@ -167,8 +166,52 @@ class XAIExplainer:
             cv2.rectangle(banner_overlay, (0, h - banner_h), (w, h), self.COLOR_ALERT, -1)
             cv2.addWeighted(banner_overlay, 0.85, frame, 0.15, 0, frame)
             
-            alert_msg = f"⚠ ERGONOMIC ALERT: {assessment.state.value} detected. Please adjust posture!"
+            alert_msg = f"⚠ ERGONOMIC ALERT: {self.describe_state(assessment)} detected. Please adjust posture!"
             cv2.putText(frame, alert_msg, (w // 2 - 280, h - 18),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2, cv2.LINE_AA)
 
         return frame
+
+    def render_feedback(self, frame: np.ndarray, assessment: Optional[PostureAssessment], top: int = 20) -> np.ndarray:
+        """
+        Renders the plain-English posture explanation as a translucent Feedback card on the right side of the frame.
+        """
+        if assessment is None:
+            return frame
+
+        w = frame.shape[1]
+        card_x2 = w - 20
+        card_x = max(20, card_x2 - 315)
+
+        # One paragraph per reason, word-wrapped to the card width
+        lines = []
+        for item in self.generate_explanation(assessment).split(" | "):
+            lines.extend(self._wrap_text(item, card_x2 - card_x - 30, 0.45, 1))
+        card_h = 45 + 20 * len(lines)
+
+        overlay = frame.copy()
+        cv2.rectangle(overlay, (card_x, top), (card_x2, top + card_h), self.COLOR_BG, -1)
+        cv2.addWeighted(overlay, 0.75, frame, 0.25, 0, frame)
+
+        cv2.putText(frame, "Feedback", (card_x + 15, top + 25),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, self.COLOR_ACCENT, 2, cv2.LINE_AA)
+        for i, line in enumerate(lines):
+            cv2.putText(frame, line, (card_x + 15, top + 50 + 20 * i),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.45, self.COLOR_TEXT, 1, cv2.LINE_AA)
+
+        return frame
+
+    @staticmethod
+    def _wrap_text(text: str, max_width: int, scale: float, thickness: int) -> List[str]:
+        """Splits text into lines no wider than max_width pixels when drawn in the HUD font."""
+        lines, line = [], ""
+        for word in text.split():
+            candidate = f"{line} {word}" if line else word
+            if line and cv2.getTextSize(candidate, cv2.FONT_HERSHEY_SIMPLEX, scale, thickness)[0][0] > max_width:
+                lines.append(line)
+                line = word
+            else:
+                line = candidate
+        if line:
+            lines.append(line)
+        return lines

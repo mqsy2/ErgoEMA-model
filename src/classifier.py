@@ -29,6 +29,7 @@ class PostureAssessment:
     sustained_duration_sec: float = 0.0
     clinical_fhp: Optional[bool] = None           # Lateral view: CVA below the clinical FHP criterion
     cva_drop_deg: Optional[float] = None          # Lateral view: degrees below the calibrated upright CVA
+    violations: List[PostureState] = field(default_factory=list)  # Every state whose threshold was exceeded, most severe first
 
 class PostureClassifier:
     """Adaptive and Static threshold posture classifier for Upright, Slouch, and FHP."""
@@ -144,7 +145,8 @@ class PostureClassifier:
             forward_head_z_deviation=z_dev,
             sustained_duration_sec=sustained_duration,
             clinical_fhp=clinical_fhp,
-            cva_drop_deg=cva_drop
+            cva_drop_deg=cva_drop,
+            violations=sorted(active_violations, key=active_violations.get, reverse=True)
         )
 
     def evaluate_static_baseline(
@@ -180,5 +182,6 @@ class PostureClassifier:
             reasons=reasons,
             h2s_ratio_deviation_pct=0.0,
             forward_head_z_deviation=0.0,
-            sustained_duration_sec=0.0
+            sustained_duration_sec=0.0,
+            violations=sorted(active_violations, key=active_violations.get, reverse=True)
         )
