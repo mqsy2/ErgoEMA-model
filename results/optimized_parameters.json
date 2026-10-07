@@ -202,7 +202,7 @@
             "Recall (%)": 71.37,
             "F1-Score (%)": 69.87,
             "FAR (%)": 22.58,
-            "Latency (ms)": 0.0165
+            "Latency (ms)": 0.0172
         },
         {
             "Model Architecture": "Random Forest (100 Trees)",
@@ -211,7 +211,7 @@
             "Recall (%)": 53.71,
             "F1-Score (%)": 47.2,
             "FAR (%)": 50.68,
-            "Latency (ms)": 4.3074
+            "Latency (ms)": 4.3231
         },
         {
             "Model Architecture": "Support Vector Machine (RBF)",
@@ -220,7 +220,7 @@
             "Recall (%)": 41.89,
             "F1-Score (%)": 42.37,
             "FAR (%)": 38.31,
-            "Latency (ms)": 0.8421
+            "Latency (ms)": 0.7224
         },
         {
             "Model Architecture": "Logistic Regression",
@@ -229,7 +229,7 @@
             "Recall (%)": 34.91,
             "F1-Score (%)": 45.01,
             "FAR (%)": 13.86,
-            "Latency (ms)": 0.0733
+            "Latency (ms)": 0.0722
         },
         {
             "Model Architecture": "Static Rigid Threshold",
@@ -238,7 +238,7 @@
             "Recall (%)": 46.47,
             "F1-Score (%)": 44.64,
             "FAR (%)": 42.33,
-            "Latency (ms)": 0.0002
+            "Latency (ms)": 0.0001
         }
     ],
     "ablation_viewpoints": [
@@ -485,7 +485,7 @@
                     "Recall (%)": 24.76,
                     "F1-Score (%)": 36.01,
                     "FAR (%)": 13.03,
-                    "Latency (ms)": 0.0217
+                    "Latency (ms)": 0.017
                 },
                 {
                     "Model Architecture": "Random Forest (100 Trees)",
@@ -494,7 +494,7 @@
                     "Recall (%)": 50.71,
                     "F1-Score (%)": 53.17,
                     "FAR (%)": 40.83,
-                    "Latency (ms)": 4.8419
+                    "Latency (ms)": 4.7571
                 },
                 {
                     "Model Architecture": "Support Vector Machine (RBF)",
@@ -503,7 +503,7 @@
                     "Recall (%)": 44.31,
                     "F1-Score (%)": 55.86,
                     "FAR (%)": 14.62,
-                    "Latency (ms)": 2.2433
+                    "Latency (ms)": 2.2941
                 },
                 {
                     "Model Architecture": "Logistic Regression",
@@ -512,7 +512,7 @@
                     "Recall (%)": 39.14,
                     "F1-Score (%)": 44.09,
                     "FAR (%)": 39.16,
-                    "Latency (ms)": 0.0734
+                    "Latency (ms)": 0.0727
                 },
                 {
                     "Model Architecture": "Static Rigid Threshold",
@@ -708,7 +708,7 @@
                     "Recall (%)": 96.95,
                     "F1-Score (%)": 97.66,
                     "FAR (%)": 1.69,
-                    "Latency (ms)": 0.0207
+                    "Latency (ms)": 0.0206
                 },
                 {
                     "Model Architecture": "ErgoEMA, Clinical CVA Criterion Only",
@@ -717,7 +717,7 @@
                     "Recall (%)": 97.29,
                     "F1-Score (%)": 85.95,
                     "FAR (%)": 31.06,
-                    "Latency (ms)": 0.0166
+                    "Latency (ms)": 0.0181
                 },
                 {
                     "Model Architecture": "Random Forest (100 Trees)",
@@ -726,7 +726,7 @@
                     "Recall (%)": 81.58,
                     "F1-Score (%)": 82.27,
                     "FAR (%)": 17.87,
-                    "Latency (ms)": 4.643
+                    "Latency (ms)": 4.7526
                 },
                 {
                     "Model Architecture": "Support Vector Machine (RBF)",
@@ -735,7 +735,7 @@
                     "Recall (%)": 83.04,
                     "F1-Score (%)": 86.05,
                     "FAR (%)": 10.63,
-                    "Latency (ms)": 0.161
+                    "Latency (ms)": 0.1647
                 },
                 {
                     "Model Architecture": "Logistic Regression",
@@ -744,7 +744,7 @@
                     "Recall (%)": 85.53,
                     "F1-Score (%)": 88.83,
                     "FAR (%)": 7.51,
-                    "Latency (ms)": 0.073
+                    "Latency (ms)": 0.0722
                 },
                 {
                     "Model Architecture": "Static Rigid Threshold (CVA, unsmoothed)",
@@ -753,7 +753,7 @@
                     "Recall (%)": 97.34,
                     "F1-Score (%)": 86.36,
                     "FAR (%)": 29.96,
-                    "Latency (ms)": 0.0002
+                    "Latency (ms)": 0.0001
                 }
             ]
         }
